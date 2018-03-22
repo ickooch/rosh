@@ -1,0 +1,2174 @@
+---
+#
+# General description of the overall application
+#
+Application:
+  name: GitLabCLI
+  service: gitlab
+  prefix: gcli
+  description: |-
+    Specification for a commandline client for GitLab, based on the
+    GitLab REST API specification.
+
+    The basic commandline syntax is:
+    cli ::= <built-in-command> | <regular-command>
+    built-in-command ::= 'help' | 'set' | 'nouns' | 'verbs' | 'shell' | 'exit'
+    regular-command ::= <verb> [ <arguments> ] <noun> [ <arguments> ]
+
+    Basic application configuration (such as definition of server
+    connections) is done in a separate yml file names
+    ~/.rosh_preferences (however, this should be configurable as
+    well).
+
+    The specification consists of a sequence of resource definitions,
+    each of which consisting of a sequence of commands. The resources
+    (or objects) are referenced as /nouns/, the commands applicable to
+    an object are referenced as /verbs/. The idea is to provide a
+    commandline interface that resembles natural language (eg. "list
+    projects --members <project-name>" or "list webhooks --in
+    <project>", etc.), and keeps the vocabulary as small as possible -
+    one should not remember a distinct, separate list- or
+    describe-command for each resource, but reuse the generic verb
+    that is common for all kinds of resources.
+
+    The resource definition sequence starts with a "dummy" resource,
+    called 'DUMMY_FOR_OPTIONS'. No command module will be generated
+    for this resource. Its only purpose is to provide a central
+    location where all the option specifications are defined
+    (anchored), so that they can be simply referenced in the following
+    command definitions. 
+---
+#
+# Declarations of commonly used command line options and switches
+#
+DUMMY_FOR_OPTIONS:
+  commands:
+  - name: dummy
+    options:
+    - &opt-all
+      switchspec: all|a
+      varname: all
+      description: |-2
+                Do not restrict output by any kind of built-in filter
+                logic, such as only listing projects that are listed
+                in one of the caller's namespaces.
+
+                Note, that requesting all possible entries may result
+                in extended response times because of GitLab's
+                paginating API returns (i.e. there may be many
+                sequential GET requests involved). 
+    - &opt-as
+      switchspec: as=s
+      varname: perm
+      description: |-2
+                Specify the role or permission level granted to the user for
+                which the command is run.
+                
+                Permission levels are specified numerically.
+                The following levels can be granted to a user:
+                   10 => Guest access
+                   20 => Reporter access
+                   30 => Developer access
+                   40 => Master access
+                   50 => Owner access # Only valid for groups
+    - &opt-branch
+      switchspec: branch|b=s
+      varname: branch
+    - &opt-desc
+      switchspec: desc|d=s
+      varname: desc
+      description: |-2
+                Specify a short (quoted) description for a GitLab resource object.
+
+                If the argument has the form /@<filename>/, then the program
+                attempts to find a file with the specified name, and reads the
+                description from this file, if one is found.
+    - &opt-comment
+      switchspec: comment|c=s
+      varname: comment
+      description: |-2
+                Provide a quoted comment for a GitLab issue.
+
+                If the argument has the form /@<filename>/, then the program
+                attempts to find a file with the specified name, and reads the
+                comment from this file, if one is found.
+    - &opt-disable
+      switchspec: disable=s
+      varname: dis_features
+      description: |-2
+                Disable the resource specific options or features
+                identified in the comma-separated list of option
+                keywords. Each of the options is taken to be a boolean
+                that is set to 'false' if the keyword is listed.
+
+                The following keywords are recognized:
+                    issues
+                    container_registry
+                    containers
+                    jobs
+                    lfs
+                    merge_requests / mr
+                    merge_requires_green_build
+                    merge_requires_resolved_discussion
+                    request_access / request
+                    runners
+                    shared_runners
+                    snippets
+                    wiki
+    - &opt-email
+      switchspec: email=s
+      varname: user_email
+    - &opt-enable
+      switchspec: enable=s
+      varname: enable_features
+      description: |-2
+                Enable the command specific options or features
+                identified in the comma-separated list of option
+                keywords. Each of the options is taken to be a boolean
+                that is set to 'true' if the keyword is listed.
+
+                The following keywords are recognized:
+                    issues
+                    container_registry
+                    containers
+                    jobs
+                    lfs
+                    merge_requests / mr
+                    merge_requires_green_build
+                    merge_requires_resolved_discussion
+                    request_access / request
+                    runners
+                    shared_runners
+                    snippets
+                    wiki
+    - &opt-events
+      switchspec: events=s
+      varname: events
+      description: |-2
+                The --events option determines, which GitLab events trigger
+                the webhook. The argument to the --event option is a
+                comma-separated sequence of one or more GitLab events.
+                The following event keywords are known:
+                    push
+                    tag_push
+                    note
+                    issues
+                    merge_requests
+                    job
+                    pipeline
+                    wiki_page
+    - &opt-file
+      switchspec: file|f
+      varname: file
+    - &opt-force
+      switchspec: force|f
+      varname: force
+    - &opt-format
+      switchspec: format|fmt=s
+      varname: format
+      description: |-2
+                Specify a template string to define a custom format
+                for the produced output.
+                
+                The string argument can be a filename containing the
+                format template, or a verbatim template string.
+                
+                Template strings consist of regular text that is kept
+                verbatim in the output, and /format codes/ that are
+                substituted by fields in the found data items. Format
+                codes start with a '%' and are followed by a letter
+                indicating the data field that is to be substituted.
+                
+                The following format codes are recognized:
+                  %F:<fieldname> - generic field access: the expression
+                       %F:<fieldname> is substituted by the value of
+                       specified field as found in the object descriptor.
+                       In many cases, available field names can be
+                       obtained by list or describe of an object with
+                       the --long option.
+                  %H - the HTTPS URL of the object (if available)
+                  %i - the numeric id of the object
+                  %I - the URL encoded id of the object
+                  %n - the name of the object (if available - if not,
+                       an empty string is substituted)
+                  %N - the name_with_path of an object
+                  %p - the path of the object
+                  %P - the full_path of the object
+                  %S - the ssh URL of the object (if available)
+                  %U - the web URL of the object (if available)
+    - &opt-for
+      switchspec: for=s
+      varname: for_id
+    - &opt-from
+      switchspec: from=s
+      varname: from_original
+    - &opt-get
+      switchspec: get
+      varname: installyml
+    - &opt-group
+      switchspec: group=s
+      varname: group
+    - &opt-help
+      switchspec: help
+      varname: help
+      description: |-2
+                Print this help, and command usage information.
+    - &opt-id
+      switchspec: id=i
+      varname: id
+    - &opt-in
+      switchspec: in=s
+      varname: in
+      description: |-2
+                This is a generic option to specify a context object - usually
+                some kind of namespace - for an operation. The particular
+                context depends on the /noun/ in the command expression.
+
+                Example:
+                * in a 'list projects --in <group>', the referenced context is a
+                  /group/ namespace.
+                * in a 'add webhook --in <project>', the referenced context is
+                  a /project/ object.
+
+                In any case, the argument to the --in switch can be a proper
+                object id (numeric, or url encoded pathname), or a unique
+                object name.
+
+                If the argument to --in references a project, this project
+                is cached in the internal variable 'current_project'. If
+                'current_project' is defined it is implicitly assumed as
+                argument to --in, i.e. it is not necessary to specify the
+                project context more than once in multiple subsequent commands
+                that apply to the same project.
+    - &opt-json
+      switchspec: json
+      varname: json
+      description: |-2
+                Descriptive output is printed as JSON document. This is useful
+                for further automated prcessing of the returned information.
+    - &opt-labels
+      switchspec: labels|type=s
+      varname: labels
+      description: |-2
+                Comma-separated list of labels for the item.
+    - &opt-limit
+      switchspec: limit|max=i
+      varname: limit
+      description: |-2
+                For list output, limit the number of rows that are reported.
+    - &opt-long
+      switchspec: long|l
+      varname: long
+      description: |-2
+                Print detailed information, such as description. and other
+                attributes for the respective resource.
+                If this switch is used together with the --json switch, then
+                all raw data as returned by the API call is printed as JSON
+                document. 
+    - &opt-merge
+      varname: can_merge
+      switchspec: allow-merge
+      description: |-2
+                Allow users with project role developer to merge to this
+                branch.
+    - &opt-milestone
+      switchspec: milestone=s
+      varname: milestone
+      description: |-2
+                The ID of a milestone.
+    - &opt-name
+      switchspec: name|n=s
+      varname: name
+    - &opt-no-comment
+      varname: no_comment
+      switchspec: no-comment|nc
+      description: |-2
+                Deny a comment (acquired by default).
+    - &opt-options
+      switchspec: options|n=s
+      varname: options
+      description: |-2
+                Enable the command specific options or features
+                identified in the comma-separated list of option
+                keywords. Each of the options is taken to be a boolean
+                that is set to 'true' if the keyword is listed.
+    - &opt-path
+      switchspec: path=s
+      varname: path
+    - &opt-perm
+      switchspec: perm=s
+      varname: perm
+      description: |-2
+                Specify the permission level granted to the user for
+                which the command is run.
+                
+                Permission levels are specified numerically.
+                The following levels can be granted to a user:
+                   10 => Guest access
+                   20 => Reporter access
+                   30 => Developer access
+                   40 => Master access
+                   50 => Owner access # Only valid for groups
+    - &opt-project
+      switchspec: project|p=s
+      varname: project
+    - &opt-project-id
+      switchspec: in=i
+      varname: project_id
+    - &opt-proto
+      switchspec: proto=s
+      varname: prototype
+      description: |-2
+                Specify an existing prototype in the creation of a new
+                object. If a protoype object is specified, all
+                relevant attributes of the object are used to set an
+                initial value for the respective attribute in the
+                newly created object.
+    - &opt-push
+      varname: can_push
+      switchspec: allow-push
+      description: |-2
+                Allow users with project role developer to merge to this
+                repository, or branch.
+    - &opt-recursive
+      switchspec: recursive|r
+      varname: recursive
+      description: |-2
+                If the option /--recursive/ is set, the operation applies to
+                all entities that are referenced by the transitive closure
+                of a group context (possibly defined with --to).
+    - &opt-ref
+      switchspec: ref=s
+      varname: ref
+    - &opt-sha
+      switchspec: sha=s
+      varname: sha
+    - &opt-short
+      switchspec: short|s
+      varname: short
+    - &opt-state
+      switchspec: state=s
+      varname: state
+      description: |-2
+                Return all merge requests or just those that are opened, closed, or merged.
+    - &opt-title
+      switchspec: title=s
+      varname: title
+      description: |-2
+                Title of the object.
+    - &opt-token
+      switchspec: token=s
+      varname: token    
+      description: |-2
+                The switch '--token <string>' is used to define a secret
+                token to validate received payloads.
+    - &opt-to
+      switchspec: to=s
+      varname: to_target    
+      description: |-2
+                Specify the target context or object to which an
+                operation applies. The string argument can be a simple
+                id, or name, or a comma-separated sequence of ids.
+
+                For example, copy an existing webhook to an existing project
+                with 'copy webhook 842 --to my_project.
+    - &opt-url
+      switchspec: url=s
+      varname: url
+      description: |-2
+                Specify the URL of the resource or endpoint referenced
+                in the command.
+    - &opt-user
+      switchspec: userid=i
+      varname: userid
+    - &opt-visibility
+      switchspec: visibility=s
+      varname: visibility
+    - &opt-with
+      switchspec: with=s
+      varname: with
+#
+################################################################################
+################################################################################
+#
+# Definitions of the resource objects, the Nouns of our command language
+#
+################################################################################
+#
+Artifacts:
+  commands:
+  - name: ls*
+    verb: list
+    cardinality: single
+    canfilter: name
+    endpoint: /projects/:id/jobs/:job_id/artifacts
+    request_type: GET
+    options:
+    - *opt-help
+    - &opt-job
+      switchspec: job=s
+      varname: job
+    - *opt-ref
+    - *opt-long
+    - *opt-in    
+    cmd_description: |-2
+          List artifacts generated for the indicated job.
+
+          An argument to the list command is treated as a filter expression
+          that will be matched against the set of all job artifacts.
+  - name: get*
+    verb: get
+    cardinality: single
+    canfilter: name
+    endpoint: /projects/:id/jobs/:job_id/artifacts
+    request_type: GET
+    options:
+    - *opt-help
+    - *opt-job
+    - *opt-long
+    - *opt-in    
+    cmd_description: |-2
+          Get the artifacts (zip-)file for the given job. If a name is
+          provided that matches one or more artifact, only the
+          matching artifacts are retrieved and placed in the current
+          directory. 
+  kind: resource
+  noun: artifact
+  suffix: atf
+#
+################################################################################
+#
+Boards:
+  commands:
+  - name: ls*
+    verb: ls,list,show
+    cardinality: many
+    canfilter: name
+    endpoint: /projects/:id/boards
+    request_type: GET
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-in
+    - *opt-format
+    cmd_description: |-2
+          List names, and ids of all filters owned by or visible to the caller.
+  - name: desc*
+    verb: describe,desc
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:id/boards/:board_id/lists
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-in
+    - *opt-format
+  - name: add*
+    verb: add
+    cardinality: single
+    endpoint: /projects/:id/boards/:board_id/lists
+    request_type: POST
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-name
+    - *opt-in
+    - *opt-desc
+  - name: delete*
+    verb: delete
+    cardinality: single
+    request_type: DELETE
+    endpoint: /projects/:id/boards/:board_id/lists/:list_id
+    options:
+    - *opt-force
+    - *opt-in
+    - *opt-help
+  - name: edit*
+    verb: edit
+    cardinality: single
+    request_type: PUT
+    endpoint: /projects/:id/boards/:board_id/lists/:list_id
+    options:
+    - *opt-help
+    - *opt-name
+    - *opt-in
+    - *opt-desc
+  kind: resource
+  noun: board
+  suffix: brd
+#
+################################################################################
+#
+Branches:
+  commands:
+  - name: ls*
+    verb: list,ls
+    cardinality: many
+    canfilter: name
+    endpoint: /projects/:id/repository/branches
+    request_type: GET
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-limit
+    - *opt-all
+    - *opt-in    
+    cmd_description: |-2
+          List names, and ids of branches in specified (current) repository.
+
+          An argument to the list command is treated as a filter expression
+          that will be matched against the set of all branches.
+  - name: desc*
+    verb: describe,desc
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:id/repository/branches/:branch
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-in    
+    cmd_description: |-
+      Output details of the current project's branch which is given as argument.
+  - name: prot*
+    verb: protect
+    cardinality: single
+    request_type: PUT
+    endpoint: /projects/:id/repository/branches/:branch/protect
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-push
+    - *opt-merge
+  - name: unprot*
+    verb: unprotect
+    cardinality: single
+    request_type: PUT
+    endpoint: /projects/:id/repository/branches/:branch/unprotect
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+  - name: mk*
+    verb: add,create,new
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:id/repository/branches
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-for
+    - *opt-ref
+    cmd_description: |-
+      Create a branch in the specified (or current) project.
+      The branch is forked off from the specified branch, label or
+      commit specified as argument to --ref. If no branching point
+      is specified, the branch forks of master.
+      
+      The name of the branch must be specified as argument to the
+      command.
+  - name: del*
+    verb: remove,delete,rm,del
+    cardinality: single
+    request_type: DELETE
+    endpoint: /projects/:id/repository/branches/:branch
+    require_subject: 1
+    options:
+    - *opt-force
+    - *opt-help
+    - *opt-in
+    cmd_description: |-
+      Delete a branch in the specified (or current) project.
+      
+      The name of the branch must be specified as argument to the
+      command.
+  - name: delmrg*
+    verb: delete merged
+    cardinality: single
+    request_type: DELETE
+    endpoint: /projects/:id/repository/branches/:branch
+    options:
+    - *opt-force
+    - *opt-help
+    - *opt-in
+    cmd_description: |-
+      Delete all branches that are merged into the  specified (or current)
+      project's default branch.
+      
+      Protected branches will not be deleted as part of this operation.
+  kind: resource
+  noun: branch
+  suffix: br
+#
+################################################################################
+#
+CIYML:
+  commands:
+  - cardinality: many
+    endpoint: /templates/gitlab_ci_ymls
+    name: ls*
+    options:
+    - *opt-help
+    request_type: GET
+    verb: list
+  - cardinality: single
+    endpoint: /templates/gitlab_ci_ymls/:key
+    name: desc*
+    options:
+    - *opt-help
+    request_type: GET
+    verb: describe
+  - cardinality: single
+    endpoint: /templates/gitlab_ci_ymls/:key
+    name: cat*
+    options:
+    - *opt-help
+    request_type: GET
+    verb: get
+  kind: resource
+  noun: yml-template
+  suffix: yml
+#
+################################################################################
+#
+Commits:
+  commands:
+  - name: ls*
+    verb: list
+    cardinality: many
+    canfilter: title
+    endpoint: /projects/:id/repository/commits
+    request_type: GET
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-limit
+    - *opt-in
+    - *opt-branch
+    - *opt-ref
+    - &opt-since
+      switchspec: since=s
+      varname: since
+      description: |-2
+                Only commits after or on this date will be listed in ISO 8601 format
+                YYYY-MM-DDTHH:MM:SSZ
+    - &opt-until
+      switchspec: until=s
+      varname: until
+      description: |-2
+                Only commits before or on this date will be listed in ISO 8601 format
+                YYYY-MM-DDTHH:MM:SSZ
+    cmd_description: |-2
+          List commits in specified repositories.
+
+          An argument to the list command is treated as a filter expression
+          that will be matched against the title of all commits.
+  - name: desc*
+    verb: describe
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:id/repository/commits/:commit
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-in    
+    cmd_description: |-
+      Output details of the current project's commit which is given as argument.
+  - name: diff*
+    verb: diff|compare|comp
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:id/repository/compare?from=ref_from&to=ref_to
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-from
+    - *opt-to
+    - *opt-in
+    - &opt-filter
+      switchspec: filter=s
+      varname: filter
+      description: |-2
+                Restrict diff output to kind of changes specified as filter argument:
+                    - A - select files added
+                    - D - select files deleted
+                    - M - select files modified
+                    - R - select file renames
+                Any combination of filter keys is possible.
+                If no filter is specified, all differences will be listed.
+    cmd_description: |-
+      Print an overview of the differences between the two commits --from and --to.
+  kind: resource
+  noun: commit
+  suffix: cmit
+#
+################################################################################
+#
+Environments:
+  commands:
+  - name: ls*
+    verb: list
+    canfilter: key
+    cardinality: many
+    request_type: GET
+    endpoint: /projects/:project-id/environments
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-in
+  - name: desc*
+    verb: describe
+    require_subject: 1
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:project-id/environments/:id
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-in
+  - name: add*
+    cmd_description: |-2
+          Create a new deployment environment.
+    verb: add,create
+    require_subject: 1
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:project-id/environment
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-url
+  - name: stop*
+    cmd_description: |-2
+          Stop the specified environment.
+    verb: stop
+    require_subject: 1
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:project-id/environments/stop
+    options:
+    - *opt-help
+    - *opt-in
+  - name: rm*
+    verb: remove,delete
+    require_subject: 1
+    cardinality: single
+    request_type: DELETE
+    endpoint: /projects/:project-id/environments/:id
+    cmd_description: |-2
+          Delete the environment.
+    options:
+    - *opt-force
+    - *opt-help
+    - *opt-in
+  - name: edit*
+    verb: edit,update
+    require_subject: 1
+    cardinality: single
+    request_type: PUT
+    endpoint: /projects/:project-id/environments/:id
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-url
+  kind: resource
+  noun: env
+  suffix: env
+#
+################################################################################
+#
+Files:
+  commands:
+  - name: ls*
+    verb: list
+    cardinality: many
+    endpoint: /projects/:id/repository/tree
+    request_type: GET
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-in
+    - *opt-recursive
+    - *opt-ref
+    - *opt-branch
+    cmd_description: |-2
+          List the files in a project's repository.
+
+          Arguments to the command are treated as search names, and only
+          files whose names match are included in the output.      
+  - name: desc*
+    verb: describe
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:id/repository/files/:file_path
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-in
+    - *opt-ref
+    - *opt-branch
+    cmd_description: |-2
+      Output all relevant details of the file given as argument.
+  - name: cat*
+    verb: cat
+    cardinality: single
+    endpoint: /projects/:id/repository/files/:file_path
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-file
+    - *opt-in
+    - *opt-ref
+    - *opt-branch
+    cmd_description: |-2
+      Output the contents of the file.
+    request_type: GET
+  - name: diff*
+    verb: diff|compare|comp
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:id/repository/compare?from=ref_from&to=ref_to
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-from
+    - *opt-to
+    - *opt-in    
+    cmd_description: |-
+      Print the differences between the two commits --from and --to in specified file.
+  kind: resource
+  noun: file
+  suffix: fil
+#
+################################################################################
+#
+Groups:
+  commands:
+  - name: ls*
+    verb: list,ls
+    cardinality: many
+    canfilter: name
+    endpoint: /groups
+    request_type: GET
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    cmd_description: |-2
+          List names, and ids of all groups owned by or visible to the caller.
+
+          Arguments to the command are treated as search names, and only
+          groups whose names match are included in the output.      
+  - name: ls*_projects
+    verb: list projects in,ls projects in
+    cardinality: many
+    request_type: GET
+    endpoint: /groups/:group-id/projects
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    cmd_description: |-
+      List names, and ids of all projects contained in the group or
+      subgroup passed as argument.
+    require_subject: 1
+  - name: ls*_members
+    verb: list members of,list members in,list users in,ls members of
+    cardinality: many
+    request_type: GET
+    endpoint: /groups/:group-id/members
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    cmd_description: |-
+      List names, and ids of all subgroups contained in the group
+      passed as argument.
+    require_subject: 1
+  - name: add*_members
+    verb: add member to,add user to
+    cardinality: single
+    request_type: POST
+    endpoint: /groups/:id/members
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-as
+  - name: rm*_members
+    verb: remove member from,remove user from,rm member from
+    cardinality: single
+    request_type: DELETE
+    endpoint: /groups/:id/members/:user_id
+    require_subject: 1
+    options:
+    - *opt-help
+  - name: desc*
+    verb: describe,desc
+    cardinality: single
+    request_type: GET
+    endpoint: /groups/:group-id
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-json
+    cmd_description: |-
+      Output all relevant details of the group given as argument.
+  - name: add*
+    verb: add,new,create
+    cardinality: single
+    endpoint: /groups
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-path
+    - *opt-proto
+    - *opt-in
+    - *opt-desc
+    - *opt-visibility
+    request_type: POST
+  - name: delete*
+    verb: delete,del,remove,rm
+    cardinality: single
+    request_type: DELETE
+    endpoint: /groups/:group-id
+    options:
+    - *opt-force
+    - *opt-recursive
+    - *opt-help
+  - name: edit*
+    verb: edit,update,change
+    cardinality: single
+    request_type: PUT
+    endpoint: /groups/:group-id
+    options:
+    - *opt-help
+    - *opt-group
+    - *opt-name
+    - *opt-path
+    - *opt-in
+    - *opt-enable
+    - *opt-disable
+    - *opt-desc
+    - *opt-visibility
+  kind: resource
+  noun: group
+  suffix: grp
+#
+################################################################################
+#
+Issues:
+  commands:
+  - name: ls*
+    verb: list,ls
+    cardinality: many
+    canfilter: name
+    endpoint: /gadget/1.0/pickers/filters
+    request_type: GET
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-limit
+    - *opt-in
+    - &opt-board
+      switchspec: on|on-board|board=s
+      varname: board
+      description: |-2
+                List issues on the board indicated by the argument to the --on-board
+                switch. Issues are selected with the filter associated with the board.
+                Output is grouped by the columns defined in the board.
+    - *opt-filter
+    - *opt-all
+    cmd_description: |-2
+          List active issues in the specified project, or according to one of the
+          selection options.
+          By default, only active issues are returned. Option --all can be set to
+          include closed, and resolved issues in the output, too.
+  - name: lsmy*
+    verb: list my,ls my
+    cardinality: many
+    canfilter: name
+    endpoint: /gadget/1.0/pickers/filters
+    request_type: GET
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-user
+    - *opt-format
+    - *opt-all
+    - *opt-filter
+    - *opt-in
+    cmd_description: |-2
+          List issues assigned to, or reported by the current user. By default
+          the current user is the user used to connect to Jira. The concept of
+          current user can be modified with the option --user <userid>.
+  - name: lstmp*
+    verb: list templates for,ls templ
+    cardinality: many
+    canfilter: name
+    endpoint: /projects/:id/repository/tree
+    request_type: GET
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-in
+    cmd_description: |-2
+          List issue templates for the current project. The templates are markdown
+          files stored in the .gitlab/issue_templates/ directory.
+  - name: desc*
+    verb: describe,desc,cat
+    cardinality: single
+    request_type: GET
+    endpoint: /issue/{id}
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-in
+    - *opt-with
+  - name: add*
+    verb: new,add,create
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:project-id/merge_requests
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-labels
+    - &opt-title
+      switchspec: title=s
+      varname: title
+      description: |-2
+                Title of the issue.
+    - *opt-desc
+    - &opt-assign-to
+      switchspec: assign-to=s
+      varname: assign
+      description: |-2
+                User Id of the person the merge request is assigned to.
+    - *opt-milestone
+  - name: del*
+    verb: remove,delete,rm,del
+    cardinality: single
+    request_type: DELETE
+    endpoint: /projects/:id/issues/:issue_iid
+    require_subject: 1
+    options:
+    - *opt-force
+    - *opt-help
+    - *opt-in
+    cmd_description: |-
+      Delete an issue in the specified (or current) project.
+      
+      The instance id of the issue must be specified as argument to the
+      command.
+  - name: asg*
+    verb: assign
+    cardinality: single
+    request_type: PUT
+    endpoint: /issue/{issueIdOrKey}/assignee
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-to
+    - *opt-comment
+    - *opt-in
+  - name: crbr*
+    verb: create branch for,add branch for
+    cardinality: single
+    request_type: POST
+    endpoint: /defer-to-branch
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-for
+    - *opt-in
+  - name: cmt*
+    verb: comment
+    cardinality: single
+    request_type: POST
+    endpoint: /issue/{issueIdOrKey}/comment
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-comment
+  - name: wat*
+    verb: watch,subscribe,sub
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:id/issues/:issue_iid/subscribe
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+  - name: uwat*
+    verb: unwatch,unsubscribe,unsub
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:id/issues/:issue_iid/unsubscribe
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+  - name: trans*
+    verb: transition,trans,move,advance,adv,push,close,reopen
+    cardinality: single
+    request_type: POST
+    endpoint: /issue/{issueIdOrKey}/transitions
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-from
+    - *opt-to
+    - *opt-no-comment
+    - *opt-in
+    - *opt-comment
+  kind: resource
+  noun: issue
+  suffix: iss
+#
+################################################################################
+#
+Jobs:
+  commands:
+  - name: ls*
+    verb: list all
+    canfilter: description
+    cardinality: many
+    request_type: GET
+    endpoint: /projects/:project-id/jobs
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-limit
+    - *opt-short
+    - *opt-format
+    - *opt-in
+    - *opt-branch
+  - name: lsname*
+    verb: list
+    canfilter: description
+    cardinality: many
+    request_type: GET
+    endpoint: /projects/:project-id/jobs
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-all
+    - *opt-long
+    - *opt-limit
+    - *opt-short
+    - *opt-format
+    - *opt-branch
+  - name: desc*
+    verb: describe
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:project-id/jobs/:id
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-in
+  - name: get*
+    verb: get
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:project-id/jobs/:id/trace
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-file
+  - name: getatf*
+    verb: get artifacts from
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:id/jobs/:job_id/artifacts
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+  - name: downloadatf*
+    verb: download artifacts of
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:id/jobs/artifacts/:ref_name/download?job=name
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-ref
+    - *opt-file
+  - name: cancel*
+    verb: cancel
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:project-id/jobs/:id/cancel
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+  - name: retry*
+    verb: retry
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:project-id/jobs/:id/retry
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+  - name: erase*
+    verb: delete,erase,remove
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:project-id/jobs/:id/erase
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-force
+    - *opt-in
+  - name: play*
+    verb: play,trigger,start
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:project-id/jobs/:id/play
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+  kind: resource
+  noun: job
+  suffix: job
+#
+################################################################################
+#
+Labels:
+  commands:
+  - name: ls*
+    verb: list,ls
+    canfilter: name
+    cardinality: many
+    request_type: GET
+    endpoint: /projects/:id/labels
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-limit
+    - *opt-short
+    - *opt-format
+    - *opt-in
+  - name: desc*
+    verb: describe,desc,get
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:id/labels
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-in    
+    cmd_description: |-
+      Output details of the current project's branch which is given as argument.
+  - name: mk*
+    verb: add,create,new,mk
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:id/labels
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-desc
+    - &opt-color
+      switchspec: color|col=s
+      varname: color
+      description: |-2
+                The color of the label given in 6-digit hex notation with leading '#'
+                sign (e.g. #FFAABB) or one of the CSS color names
+    cmd_description: |-
+      Create a label in the specified (or current) project.
+      
+      The name of the label must be specified as argument to the
+      command.
+  - name: del*
+    verb: remove,delete,del,rm
+    cardinality: single
+    request_type: DELETE
+    endpoint: /projects/:id/labels
+    require_subject: 1
+    options:
+    - *opt-force
+    - *opt-help
+    - *opt-in
+    cmd_description: |-
+      Delete a branch in the specified (or current) project.
+      
+      The name of the branch must be specified as argument to the
+      command.
+  kind: resource
+  noun: label
+  suffix: lbl
+#
+################################################################################
+#
+Mergerequests:
+  commands:
+  - name: ls*
+    verb: list
+    canfilter: description
+    cardinality: many
+    request_type: GET
+    endpoint: /projects/:project-id/merge_requests
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-labels
+    - *opt-milestone
+    - *opt-limit
+    - *opt-short
+    - *opt-format
+    - *opt-all
+    - *opt-in
+  - name: lsnote*
+    verb: list comments to,list notes for,list comments,list notes
+    canfilter: description
+    cardinality: many
+    request_type: GET
+    endpoint: /projects/:id/merge_requests/:merge_request_iid/notes
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-limit
+    - *opt-short
+    - *opt-format
+    - *opt-in
+  - name: desc*
+    verb: describe,desc
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:project-id/merge_requests/:merge_request_iid
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-with
+    - *opt-in
+  - name: cmt*
+    verb: comment
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:id/merge_requests/:merge_request_iid/notes
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-comment
+  - name: get*
+    verb: get
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:project-id/merge_requests/:merge_request_iid/commits
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+    - &opt-commits
+      switchspec: commits
+      varname: commits
+      description: |-2
+                Get a list of merge request commits.
+    - &opt-changes
+      switchspec: changes
+      varname: changes
+      description: |-2
+                Show information about the merge request including its files and changes.
+    - *opt-file
+  - name: cancel*
+    verb: cancel,abort
+    cardinality: single
+    request_type: PUT
+    endpoint: /projects/:id/merge_requests/:merge_request_iid/cancel_merge_when_pipeline_succeeds
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+  - name: accept*
+    verb: do,accept,merge,exec,execute
+    cardinality: single
+    request_type: PUT
+    endpoint: /projects/:id/merge_requests/:merge_request_iid/merge
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-sha
+    - &opt-message
+      switchspec: message|msg=s
+      varname: message
+      description: |-2
+                Commit message to be used for the merge.
+    - &opt-rmsource
+      switchspec: rm-source-branch|delete-branch
+      varname: rmsrc_branch
+      description: |-2
+                Remove the source branch if merge succeeds.
+  - name: approve*
+    verb: approve
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:id/merge_requests/:merge_request_iid/approve
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-sha
+    - *opt-in
+  - name: unapprove*
+    verb: unapprove
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:id/merge_requests/:merge_request_iid/unapprove
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+  - name: erase*
+    verb: delete,erase,remove
+    cardinality: single
+    request_type: DELETE
+    endpoint: /projects/:id/merge_requests/:merge_request_iid
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-force
+    - *opt-in
+  - name: add*
+    verb: add,create
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:project-id/merge_requests
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-from
+    - *opt-to
+    - &opt-title
+      switchspec: title=s
+      varname: title
+      description: |-2
+                Title of the merge request.
+    - *opt-desc
+    - *opt-rmsource
+    - &opt-assign-to
+      switchspec: assign-to=s
+      varname: assign
+      description: |-2
+                User Id of the person the merge request is assigned to.
+    - *opt-labels
+    - &opt-sqash
+      switchspec: squash
+      varname: squash
+      description: |-2
+                Squash commits into a single commit when merging.
+    - *opt-milestone
+  - name: edit*
+    verb: edit,update
+    cardinality: single
+    request_type: PUT
+    endpoint: /projects/:project-id/merge_requests/:merge_request_iid
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-title
+    - *opt-desc
+    - *opt-assign-to
+    - *opt-to
+    - *opt-rmsource
+    - *opt-labels
+    - *opt-sqash
+    - *opt-milestone
+  kind: resource
+  noun: merge
+  suffix: mr
+#
+################################################################################
+#
+Namespaces:
+  commands:
+  - name: ls*
+    verb: list
+    canfilter: name
+    cardinality: many
+    request_type: GET
+    endpoint: /namespaces
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+  kind: resource
+  noun: namespace
+  suffix: ns
+#
+################################################################################
+#
+Pipelines:
+  commands:
+  - name: ls*
+    verb: list,ls
+    canfilter: description
+    cardinality: many
+    request_type: GET
+    endpoint: /projects/:project-id/pipelines
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-limit
+    - *opt-short
+    - *opt-format
+    - *opt-in
+  - name: desc*
+    verb: describe,desc
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:project-id/pipelines/:id
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-in
+  kind: resource
+  noun: pipeline
+  suffix: pip
+#
+################################################################################
+#
+Projects:
+  commands:
+  - name: ls*
+    verb: list,ls
+    cardinality: many
+    request_type: GET
+    endpoint: /projects
+    canfilter: name
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-in
+    - *opt-all
+    - *opt-recursive
+    - *opt-format
+    cmd_description: |-2
+          List names, and ids of all projects listed in a group or
+          subgroup (namespace) owned by or visible to the caller.
+
+          Arguments to the command are treated as search names, and only
+          projects whose names match are included in the output.      
+  - name: ls*_members
+    verb: list members of
+    cardinality: many
+    canfilter: name
+    request_type: GET
+    endpoint: /projects/:project-id/users
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+  - name: add*_members
+    verb: add member to,add user to
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:id/members
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-as
+  - name: rm*_members
+    verb: remove member from,remove user from
+    cardinality: single
+    request_type: DELETE
+    endpoint: /projects/:id/members/:user_id
+    require_subject: 1
+    options:
+    - *opt-help
+  - name: desc*
+    verb: describe,desc
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:project-id
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+  - name: mk*
+    verb: create,add,new
+    cardinality: single
+    request_type: POST
+    endpoint: /projects
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-desc
+    - *opt-visibility
+    - *opt-branch
+    - *opt-enable
+    - *opt-url
+    - *opt-proto
+  - name: move*
+    verb: move,rename,mv,ren,transfer,trans
+    cardinality: single
+    request_type: PUT
+    endpoint: /projects/:id
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-from
+    - *opt-to
+  - name: rm*
+    verb: remove,delete
+    require_subject: 1
+    cardinality: single
+    request_type: DELETE
+    endpoint: /projects/:project-id
+    options:
+    - *opt-force
+    - *opt-help
+  - name: edit*
+    verb: update,edit,change
+    request_type: PUT
+    require_subject: 1
+    cardinality: single
+    endpoint: /projects/:project-id
+    options:
+    - *opt-help
+    - *opt-desc
+    - *opt-visibility
+    - *opt-in
+    - *opt-name
+    - *opt-path
+    - *opt-proto
+    - *opt-branch
+    - *opt-enable
+    - *opt-disable
+  kind: resource
+  noun: project
+  suffix: prj
+#
+################################################################################
+#
+Runners:
+  commands:
+  - name: ls*
+    verb: list
+    canfilter: description
+    cardinality: many
+    request_type: GET
+    endpoint: /runners
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-in
+  - name: desc*
+    verb: describe,desc
+    cardinality: single
+    request_type: GET
+    endpoint: /runners/:runner-id
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - &opt-projects
+      switchspec: projects|P
+      varname: show_projects
+      description: |-2
+                List names and Ids of all projects that have the runner enabled.
+  - name: enable*
+    verb: enable
+    request_type: POST
+    require_subject: 1
+    cardinality: single
+    endpoint: /projects/:project-id/runners
+    options:
+    - *opt-help
+    - *opt-in
+  - name: disable*
+    verb: disable
+    request_type: DELETE
+    require_subject: 1
+    cardinality: single
+    endpoint: /projects/:project-id/runners:id
+    options:
+    - *opt-help
+    - *opt-in
+  - name: delete*
+    verb: remove,delete
+    request_type: DELETE
+    require_subject: 1
+    cardinality: single
+    endpoint: /runners/:id
+    options:
+    - *opt-help
+    - *opt-in
+  kind: resource
+  noun: runner
+  suffix: run
+#
+################################################################################
+#
+Requests:
+  commands:
+  - name: ls*
+    verb: list,ls
+    cardinality: many
+    request_type: GET
+    endpoint: /groups/:id/access_requests
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-in
+  - name: desc*
+    verb: describe,desc
+    cardinality: single
+    request_type: GET
+    endpoint: /requests/:request-id
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - &opt-projects
+      switchspec: projects|P
+      varname: show_projects
+      description: |-2
+                List names and Ids of all projects that have the request enabled.
+  - name: access*
+    verb: new,access
+    request_type: POST
+    cardinality: single
+    endpoint: /groups/:id/access_requests
+    options:
+    - *opt-help
+    - *opt-user
+    - *opt-for
+    - *opt-in
+    - *opt-to
+  - name: approve*
+    verb: approve,ok
+    request_type: PUT
+    require_subject: 1
+    cardinality: single
+    endpoint: /groups/:id/access_requests/:user_id/approve
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-as
+  - name: deny*
+    verb: deny,reject
+    request_type: DELETE
+    require_subject: 1
+    cardinality: single
+    endpoint: /groups/:id/access_requests/:user_id
+    options:
+    - *opt-help
+    - *opt-in
+  kind: resource
+  noun: request
+  suffix: req
+#
+################################################################################
+#
+# 07-Aug-17
+Snippets:
+  commands:
+  - name: list*
+    verb: list
+    canfilter: title
+    request_type: GET
+    cardinality: many
+    endpoint: /projects/:id/snippets
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-format
+    - *opt-short
+    - *opt-in
+  - name: desc*
+    verb: describe
+    request_type: GET
+    require_subject: 1
+    cardinality: single
+    endpoint: /projects/:id/snippets/:snippet_id
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-format
+    - *opt-short
+    - *opt-in
+  - name: add*
+    verb: create,add
+    request_type: POST
+    cardinality: single
+    endpoint: /projects/:id/snippets
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-title
+    - *opt-file
+    - *opt-desc
+    - *opt-visibility
+    - &opt-code
+      switchspec: code=s
+      varname: code
+    required: opt-title, opt-file, opt-code, opt-visibility
+  - name: edit*
+    verb: update,edit
+    request_type: PUT
+    require_subject: 1
+    cardinality: single
+    endpoint: /projects/:id/snippets/:snippet_id
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-title
+    - *opt-file
+    - *opt-desc
+    - *opt-visibility
+    - *opt-code
+  - name: del*
+    verb: remove,delete
+    request_type: DELETE
+    require_subject: n
+    cardinality: single
+    endpoint: /projects/:id/snippets/:snippet_id
+    options:
+    - *opt-help
+    - *opt-force
+    - *opt-in
+  - name: get*
+    verb: get,cat
+    request_type: GET
+    require_subject: 1
+    cardinality: single
+    endpoint: /projects/:id/snippets/:snippet_id/raw
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-to
+  kind: resource
+  noun: snippet
+  suffix: snp
+  subject_is_key: 1
+#
+################################################################################
+#
+# 10-Aug-2017  
+Tags:
+  commands:
+  - name: ls*
+    verb: list
+    canfilter: name
+    cardinality: many
+    request_type: GET
+    endpoint: /projects/:id/repository/tags
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-limit
+    - *opt-short
+    - *opt-format
+    - *opt-in
+  kind: resource
+  noun: tag
+  suffix: tag
+#
+################################################################################
+#
+Users:
+  commands:
+  - name: ls*
+    verb: list,ls
+    canfilter: name
+    cardinality: many
+    request_type: GET
+    endpoint: /users
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-format
+    - *opt-short
+    - *opt-in
+  - name: desc*
+    verb: describe,desc
+    cardinality: single
+    request_type: GET
+    require_subject: 1
+    endpoint: /users/:id
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-format
+    - *opt-short
+  - name: add*
+    verb: add
+    cardinality: single
+    request_type: POST
+    require_subject: 1
+    endpoint: /users/:id
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-to
+    - *opt-as
+  - name: rm*
+    verb: remove,rm,del,delete
+    cardinality: single
+    request_type: DELETE
+    require_subject: 1
+    endpoint: /users/:id
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-from
+  kind: resource
+  noun: user
+  suffix: usr
+#
+################################################################################
+#
+Variables:
+  commands:
+  - name: ls*
+    verb: list
+    canfilter: key
+    cardinality: many
+    request_type: GET
+    endpoint: /projects/:project-id/variables
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+    - *opt-in
+  - name: desc*
+    verb: describe
+    require_subject: 1
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:project-id/variables/:key
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-in
+  - name: add*
+    cmd_description: |-2
+          Create a new build variable.
+    verb: add,create
+    require_subject: 1
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:project-id/variables
+    options:
+    - *opt-help
+    - *opt-in
+    - &opt-value
+      switchspec: value|val=s
+      varname: value
+      description: |-2
+                Specify the (quoted) value for the build variable.
+
+                If the argument has the form /@<filename>/, then the program
+                attempts to find a file with the specified name, and reads the
+                value from this file, if one is found.
+    - &opt-env
+      switchspec: environment|env|scope=s
+      varname: scope
+      description: |-2
+                The environment_scope of the variable
+    - &opt-prot
+      switchspec: protected|prot
+      varname: protected
+      description: |-2
+                If switch is set, the variable is set to be protected.
+  - name: rm*
+    verb: remove,delete
+    require_subject: 1
+    cardinality: single
+    request_type: DELETE
+    endpoint: /projects/:project-id/variables/:key
+    options:
+    - *opt-force
+    - *opt-help
+    - *opt-in
+  - name: edit*
+    verb: edit,setenv,update
+    require_subject: 1
+    cardinality: single
+    request_type: PUT
+    endpoint: /projects/:project-id/variables/:key
+    options:
+    - *opt-help
+    - *opt-in
+    - *opt-value
+    - *opt-env
+    - *opt-prot
+  kind: resource
+  noun: var
+  suffix: var
+#
+################################################################################
+#
+WebHook:
+  commands:
+  - name: ls*
+    verb: list
+    cardinality: many
+    request_type: GET
+    endpoint: /projects/:project-id/hooks
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-url
+    - *opt-format
+  - name: desc*
+    verb: describe
+    require_subject: 1
+    cardinality: single
+    request_type: GET
+    endpoint: /projects/:project-id/hooks/:id
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+  - name: add*
+    cmd_description: |-2
+          Create a project hook (also referred to as webhook) for the
+          project or projects referenced by the context specified by
+          the --to option. The referenced context is usually a
+          projecst or a list of projects. It is also possible to specify a
+          group or subgroup, in which case the webhook is created for
+          all projects in the respective group (see also option
+          --recursive). 
+          
+          The option /--url '<url string>'/ defines URL endpoint of a
+          webseservice that is called whenever one of the events
+          specified with the  option --events occurs.
+          
+          The switch '--token <string>' is used to define a secret
+          token to validate received payloads.
+          
+          If the option /--recursive/ is set the argument to the --to
+          option is taken as a group (possibly containing subgroups)
+          in which projects are organized. In this case the webhook is
+          added to all projects that are contained in the transitive
+          closure of the group given in the --to option.
+    verb: add
+    require_subject: 1
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:project-id/hook
+    options:
+    - *opt-help
+    - *opt-url
+    - *opt-to
+    - *opt-recursive
+    - *opt-events
+    - *opt-token
+  - name: copy*
+    verb: copy
+    require_subject: 1
+    cardinality: single
+    request_type: POST
+    endpoint: /projects/:project-id/hook
+    options:
+    - *opt-help
+    - *opt-to
+    cmd_description: |-2
+        Copy the webhooks specified as command arguments to the
+        project (or projects) specified as argument to the --to
+        option.
+
+        This command requires an initialized cache of webhook
+        entries (see command 'list webhooks'). 
+  - name: rm*
+    verb: remove,delete
+    require_subject: 1
+    cardinality: single
+    request_type: DELETE
+    endpoint: /projects/:project-id/hooks/:id
+    options:
+    - *opt-force
+    - *opt-help
+    - *opt-events
+  - name: edit*
+    verb: edit
+    require_subject: 1
+    cardinality: single
+    request_type: PUT
+    endpoint: /projects/:project-id/hooks/:id
+    options:
+    - *opt-help
+    - *opt-project
+    - *opt-project-id
+    - *opt-url
+    - *opt-events
+    - *opt-token
+  kind: resource
+  noun: webhook
+  suffix: hook
+

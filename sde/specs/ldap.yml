@@ -1,0 +1,431 @@
+---
+#
+# General description of the overall application
+#
+Application:
+  name: LdapCLI
+  service: ldap
+  prefix: ldapcli
+  description: |-
+    Specification for a commandline client for Ldap, based on the
+    Ldap schema.
+
+    The basic commandline syntax is:
+    cli ::= <built-in-command> | <regular-command>
+    built-in-command ::= 'help' | 'set' | 'nouns' | 'verbs' | 'shell' | 'exit'
+    regular-command ::= <verb> [ <arguments> ] <noun> [ <arguments> ]
+
+    Basic application configuration (such as definition of server
+    connections) is done in a separate yml file names
+    ~/.cscli_preferences (however, this should be configurable as
+    well).
+
+    The specification consists of a sequence of resource definitions,
+    each of which consisting of a sequence of commands. The resources
+    (or objects) are referenced as /nouns/, the commands applicable to
+    an object are referenced as /verbs/. The idea is to provide a
+    commandline interface that resembles natural language (eg. "list
+    projects --members <project-name>" or "list webhooks --in
+    <project>", etc.), and keeps the vocabulary as small as possible -
+    one should not remember a distinct, separate list- or
+    describe-command for each resource, but reuse the generic verb
+    that is common for all kinds of resources.
+
+    The resource definition sequence starts with a "dummy" resource,
+    called 'DUMMY_FOR_OPTIONS'. No command module will be generated
+    for this resource. Its only purpose is to provide a central
+    location where all the option specifications are defined
+    (anchored), so that they can be simply referenced in the following
+    command definitions. 
+---
+#
+# Declarations of commonly used command line options and switches
+#
+DUMMY_FOR_OPTIONS:
+  commands:
+  - name: dummy
+    options:
+    - &opt-all
+      switchspec: all|a
+      varname: all
+      description: |-2
+                Do not restrict output by any kind of built-in filter
+                logic, such as only listing projects that are listed
+                in one of the caller's namespaces.
+
+                Note, that requesting all possible entries may result
+                in extended response times because of Ldap's
+                paginating API returns (i.e. there may be many
+                sequential GET requests involved). 
+    - &opt-as
+      switchspec: as=s
+      varname: perm
+      description: |-2
+                Specify the role or permission level granted to the user for
+                which the command is run.
+                
+                Permission levels are specified numerically.
+                The following levels can be granted to a user:
+                   10 => Guest access
+                   20 => Reporter access
+                   30 => Developer access
+                   40 => Master access
+                   50 => Owner access # Only valid for groups
+    - &opt-branch
+      switchspec: branch|b=s
+      varname: branch
+    - &opt-desc
+      switchspec: desc|d=s
+      varname: desc
+      description: |-2
+                Specify a short (quoted) description for a Ldap resource object.
+
+                If the argument has the form /@<filename>/, then the program
+                attempts to find a file with the specified name, and reads the
+                description from this file, if one is found.
+    - &opt-disable
+      switchspec: disable=s
+      varname: dis_features
+      description: |-2
+                Disable the resource specific options or features
+                identified in the comma-separated list of option
+                keywords. Each of the options is taken to be a boolean
+                that is set to 'false' if the keyword is listed.
+
+                The following keywords are recognized:
+                    issues
+                    container_registry
+                    containers
+                    jobs
+                    lfs
+                    merge_requests / mr
+                    merge_requires_green_build
+                    merge_requires_resolved_discussion
+                    request_access / request
+                    runners
+                    shared_runners
+                    snippets
+                    wiki
+    - &opt-email
+      switchspec: email=s
+      varname: user_email
+    - &opt-enable
+      switchspec: enable=s
+      varname: enable_features
+      description: |-2
+                Enable the command specific options or features
+                identified in the comma-separated list of option
+                keywords. Each of the options is taken to be a boolean
+                that is set to 'true' if the keyword is listed.
+
+                The following keywords are recognized:
+                    issues
+                    container_registry
+                    containers
+                    jobs
+                    lfs
+                    merge_requests / mr
+                    merge_requires_green_build
+                    merge_requires_resolved_discussion
+                    request_access / request
+                    runners
+                    shared_runners
+                    snippets
+                    wiki
+    - &opt-events
+      switchspec: events=s
+      varname: events
+      description: |-2
+                The --events option determines, which Ldap events trigger
+                the webhook. The argument to the --event option is a
+                comma-separated sequence of one or more Ldap events.
+                The following event keywords are known:
+                    push
+                    tag_push
+                    note
+                    issues
+                    merge_requests
+                    job
+                    pipeline
+                    wiki_page
+    - &opt-fave
+      switchspec: favorite|fave
+      varname: fave
+    - &opt-file
+      switchspec: file|f
+      varname: file
+    - &opt-filter
+      switchspec: filter|flt=s
+      varname: filter
+      description: |-2
+                Specify the name or id of a predefined filter.
+    - &opt-force
+      switchspec: force|f
+      varname: force
+    - &opt-format
+      switchspec: format|fmt=s
+      varname: format
+      description: |-2
+                Specify a template string to define a custom format
+                for the produced output.
+                
+                The string argument can be a filename containing the
+                format template, or a verbatim template string.
+                
+                Template strings consist of regular text that is kept
+                verbatim in the output, and /format codes/ that are
+                substituted by fields in the found data items. Format
+                codes start with a '%' and are followed by a letter
+                indicating the data field that is to be substituted.
+                
+                The following format codes are recognized:
+                  %F:<fieldname> - generic field access: the expression
+                       %F:<fieldname> is substituted by the value of
+                       specified field as found in the object descriptor.
+                       In many cases, available field names can be
+                       obtained by list or describe of an object with
+                       the --long option.
+                  %H - the HTTPS URL of the object (if available)
+                  %i - the numeric id of the object
+                  %I - the URL encoded id of the object
+                  %n - the name of the object (if available - if not,
+                       an empty string is substituted)
+                  %N - the name_with_path of an object
+                  %p - the path of the object
+                  %P - the full_path of the object
+                  %S - the ssh URL of the object (if available)
+                  %U - the web URL of the object (if available)
+    - &opt-for
+      switchspec: for=s
+      varname: for_id
+    - &opt-from
+      switchspec: from=s
+      varname: from_original
+    - &opt-get
+      switchspec: get
+      varname: installyml
+    - &opt-group
+      switchspec: group=s
+      varname: group
+    - &opt-help
+      switchspec: help
+      varname: help
+      description: |-2
+                Print this help, and command usage information.
+    - &opt-id
+      switchspec: id=i
+      varname: id
+    - &opt-in
+      switchspec: in=s
+      varname: in
+      description: |-2
+                This is a generic option to specify a context object - usually
+                some kind of namespace - for an operation. The particular
+                context depends on the /noun/ in the command expression.
+
+                Example:
+                * in a 'list projects --in <group>', the referenced context is a
+                  /group/ namespace.
+                * in a 'add webhook --in <project>', the referenced context is
+                  a /project/ object.
+
+                In any case, the argument to the --in switch can be a proper
+                object id (numeric, or url encoded pathname), or a unique
+                object name.
+
+                If the argument to --in references a project, this project
+                is cached in the internal variable 'current_project'. If
+                'current_project' is defined it is implicitly assumed as
+                argument to --in, i.e. it is not necessary to specify the
+                project context more than once in multiple subsequent commands
+                that apply to the same project.
+    - &opt-json
+      switchspec: json
+      varname: json
+      description: |-2
+                Descriptive output is printed as JSON document. This is useful
+                for further automated prcessing of the returned information.
+    - &opt-aql
+      switchspec: jql=s
+      varname: jql   
+      description: |-2
+                Specify a (quoted) JQL query for a Ldap issue search expression.
+
+                If the argument has the form /@<filename>/, then the program
+                attempts to find a file with the specified name, and reads the
+                description from this file, if one is found.
+    - &opt-labels
+      switchspec: labels=s
+      varname: labels
+      description: |-2
+                Comma-separated list of labels for the merge request.
+    - &opt-limit
+      switchspec: limit|max=i
+      varname: limit
+      description: |-2
+                For list output, limit the number of rows that are reported.
+    - &opt-long
+      switchspec: long|l
+      varname: long
+      description: |-2
+                Print detailed information, such as description. and other
+                attributes for the respective resource.
+                If this switch is used together with the --json switch, then
+                all raw data as returned by the API call is printed as JSON
+                document. 
+    - &opt-merge
+      varname: can_merge
+      switchspec: allow-merge
+      description: |-2
+                Allow users with project role developer to merge to this
+                branch.
+    - &opt-milestone
+      switchspec: milestone=s
+      varname: milestone
+      description: |-2
+                The ID of a milestone.
+    - &opt-name
+      switchspec: name|n=s
+      varname: name
+    - &opt-options
+      switchspec: options|n=s
+      varname: options
+      description: |-2
+                Enable the command specific options or features
+                identified in the comma-separated list of option
+                keywords. Each of the options is taken to be a boolean
+                that is set to 'true' if the keyword is listed.
+    - &opt-path
+      switchspec: path=s
+      varname: path
+    - &opt-perm
+      switchspec: perm=s
+      varname: perm
+      description: |-2
+                Specify the permission level granted to the user for
+                which the command is run.
+                
+                Permission levels are specified numerically.
+                The following levels can be granted to a user:
+                   10 => Guest access
+                   20 => Reporter access
+                   30 => Developer access
+                   40 => Master access
+                   50 => Owner access # Only valid for groups
+    - &opt-project
+      switchspec: project|p=s
+      varname: project
+    - &opt-project-id
+      switchspec: in=i
+      varname: project_id
+    - &opt-proto
+      switchspec: proto=s
+      varname: prototype
+      description: |-2
+                Specify an existing prototype in the creation of a new
+                object. If a protoype object is specified, all
+                relevant attributes of the object are used to set an
+                initial value for the respective attribute in the
+                newly created object.
+    - &opt-push
+      varname: can_push
+      switchspec: allow-push
+      description: |-2
+                Allow users with project role developer to merge to this
+                repository, or branch.
+    - &opt-recursive
+      switchspec: recursive|rec|R
+      varname: recursive
+      description: |-2
+                If the option /--recursive/ is set, the operation applies to
+                all entities that are referenced by the transitive closure
+                of a group context (possibly defined with --to).
+    - &opt-ref
+      switchspec: ref=s
+      varname: ref
+    - &opt-sha
+      switchspec: sha=s
+      varname: sha
+    - &opt-short
+      switchspec: short|s
+      varname: short
+    - &opt-state
+      switchspec: state=s
+      varname: state
+      description: |-2
+                Return all merge requests or just those that are opened, closed, or merged.
+    - &opt-title
+      switchspec: title=s
+      varname: title
+      description: |-2
+                Title of the object.
+    - &opt-token
+      switchspec: token=s
+      varname: token    
+      description: |-2
+                The switch '--token <string>' is used to define a secret
+                token to validate received payloads.
+    - &opt-to
+      switchspec: to=s
+      varname: to_target    
+      description: |-2
+                Specify the target context or object to which an
+                operation applies. The string argument can be a simple
+                id, or name, or a comma-separated sequence of ids.
+
+                For example, copy an existing webhook to an existing project
+                with 'copy webhook 842 --to my_project.
+    - &opt-url
+      switchspec: url=s
+      varname: url
+      description: |-2
+                Specify the URL of the resource or endpoint referenced
+                in the command.
+    - &opt-user
+      switchspec: userid=i
+      varname: userid
+    - &opt-visibility
+      switchspec: visibility=s
+      varname: visibility
+#
+################################################################################
+################################################################################
+#
+# Definitions of the resource objects, the Nouns of our command language
+#
+################################################################################
+#
+Users:
+  commands:
+  - name: ls*
+    verb: list
+    cardinality: many
+    canfilter: name
+    endpoint: /rest/agile/1.0/build
+    require_subject: 1
+    request_type: GET
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-format
+    - *opt-short
+    cmd_description: |-2
+          List names, and ids of matching user entries.
+  - name: desc*
+    verb: describe,desc
+    cardinality: single
+    request_type: GET
+    endpoint: /rest/agile/1.0/build/{buildId}
+    require_subject: 1
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-short
+    - *opt-format
+  - name: get_userinfo
+    cardinality: single
+    request_type: GET
+    endpoint: /rest/agile/1.0/build/{buildId}
+  kind: resource
+  noun: user
+  suffix: usr

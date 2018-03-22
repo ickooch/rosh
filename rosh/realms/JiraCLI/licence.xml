@@ -1,0 +1,17 @@
+<ApplicationLicence>
+  <JiraCLI>
+    <Boards.pm>qFFDsxjAELWdvGD/mYAaDXxqpm0</Boards.pm>
+    <Boards_IF.pm>7QbplwGH9m2oaLdHvowKlike2xg</Boards_IF.pm>
+    <Filters.pm>MeaNkTl8JPPsCoUiyanpUcnpJfo</Filters.pm>
+    <Filters_IF.pm>MFqNzQf4irHP9s8TSSSqvnOfo64</Filters_IF.pm>
+    <Groups.pm>BiUM/URzrb9Nv5R2RdGr0b5YfOk</Groups.pm>
+    <Groups_IF.pm>WUyzwmIejxkKjVsEQrcd/7AgtIY</Groups_IF.pm>
+    <Issues.pm>rylFat2Z0DecObAkw82TK7aPf68</Issues.pm>
+    <Issues_IF.pm>UkwnsMvFBapFrz/+/kYbHkF10NM</Issues_IF.pm>
+    <Projects.pm>FqgCNWso/C295DAzK5r7dPFFSGI</Projects.pm>
+    <Projects_IF.pm>UyDG79ituO7qmmgD7xZB3QB8/YY</Projects_IF.pm>
+    <Users.pm>NbC0KiRllNmJm/JRZob61O7LuzE</Users.pm>
+    <Users_IF.pm>A5bhG7YeHKSc566ZyDjOSD5rkwI</Users_IF.pm>
+  </JiraCLI>
+  <__Magic>mklicence - Create application licence files V1.0</__Magic>
+</ApplicationLicence>

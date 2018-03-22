@@ -1,0 +1,43 @@
+<ApplicationLicence>
+  <GitLabCLI>
+    <Artifacts.pm>IxFKoVHYJQBp5eiX+wCQhQvBJgU</Artifacts.pm>
+    <Artifacts_IF.pm>23WxWksQ6h7VqQyYhC0Xvy4dJbY</Artifacts_IF.pm>
+    <Branches.pm>NXFMH0MV7csJVr9Yf1fRetI7DTo</Branches.pm>
+    <Branches_IF.pm>ghlg4tYEqs5r0+YGnMQTJtZakjM</Branches_IF.pm>
+    <CIYML.pm>UGLkUwMDLRB90VMYHHh/o+x7YoI</CIYML.pm>
+    <CIYML_IF.pm>FFIb1iHidi5FV/X6IEomBLwpiiU</CIYML_IF.pm>
+    <Commits.pm>aIOqJtdeCtcTCAu3pxru3ngREGw</Commits.pm>
+    <Commits_IF.pm>AghI8M285bpJWPpCq1p+Y8mwqZ4</Commits_IF.pm>
+    <Environments.pm>NzJd6FRlCFe6pTDdcKRPwoCaHC4</Environments.pm>
+    <Environments_IF.pm>qhpGQsCnHVVOEAmIYa4NXcxPI1E</Environments_IF.pm>
+    <Files.pm>TGD0xm+V7JvwBBV8Y7+D7q+8yJ4</Files.pm>
+    <Files_IF.pm>wKOdJDXvQcCQDb55xvHLrTcvJl4</Files_IF.pm>
+    <Groups.pm>Ll1Wnl5jEFRW6uwLbHu8RkmDjE4</Groups.pm>
+    <Groups_IF.pm>OjRQ1HxehKyyrwSERipvLwZClB4</Groups_IF.pm>
+    <Jobs.pm>ssSdXUeSCnqnO2LAJ9hWlBdVWj8</Jobs.pm>
+    <Jobs_IF.pm>qcBbCwWo4gV6plaR945Q9ckd0VY</Jobs_IF.pm>
+    <Labels.pm>nNsKjRLLG1vk6ZYqTvP9h0T+8ok</Labels.pm>
+    <Labels_IF.pm>WvjwgARC6J9QS9Yw1tbrZl2/Jkc</Labels_IF.pm>
+    <Mergerequests.pm>VSQGUwaZgBWU5HnjqiI2IFtOFjY</Mergerequests.pm>
+    <Mergerequests_IF.pm>QVROHjUHnWl0PNpuf79l8YPW7xc</Mergerequests_IF.pm>
+    <Namespaces.pm>gE4UUXJV12hlC15mLxe0n2iCu64</Namespaces.pm>
+    <Namespaces_IF.pm>coS2sR3WGCMDugde/EynijqIxMI</Namespaces_IF.pm>
+    <Pipelines.pm>igqIU/ND3lDbEzr7bHtoix5MTB0</Pipelines.pm>
+    <Pipelines_IF.pm>jQW1BoFAg3vmo+zB2/+a3y/8djs</Pipelines_IF.pm>
+    <Projects.pm>mDFleaH/PAAGEGbWAzSsosHTjcE</Projects.pm>
+    <Projects_IF.pm>tC/DgJjfOsEM2uinyKcr6dEj6fw</Projects_IF.pm>
+    <Runners.pm>DgiyhkW99V73UAVYSJDXE69ss5E</Runners.pm>
+    <Runners_IF.pm>YtTxAcZ+zWgabzl+meuMpD9GwAI</Runners_IF.pm>
+    <Snippets.pm>+xWqbRVnrDmFqhhbekcT5KMwLyU</Snippets.pm>
+    <Snippets_IF.pm>KwIUuYBpUTt7uGzWoZru/Td8P9o</Snippets_IF.pm>
+    <Tags.pm>PqCEcJmtUJM5V1myPE861tIJ2vw</Tags.pm>
+    <Tags_IF.pm>ydcq7h8WyFlxm3OfHfLOOtpmVCg</Tags_IF.pm>
+    <Users.pm>/yG5tczxsTTnw3oHcJuDOyXlNOg</Users.pm>
+    <Users_IF.pm>k9x6enAMX8dGzYRen88CMmPasu4</Users_IF.pm>
+    <Variables.pm>QdPBERjllogYgGXWb5DBHQdYP3U</Variables.pm>
+    <Variables_IF.pm>o30TLrrOYcyqWqW7Q3qdeUa/p/A</Variables_IF.pm>
+    <WebHook.pm>3cDNl1WPinD8GExDpHZIA4RORBw</WebHook.pm>
+    <WebHook_IF.pm>m1pzGBjqwFuwE70ZW8ZPy2+eciE</WebHook_IF.pm>
+  </GitLabCLI>
+  <__Magic>mklicence - Create application licence files V1.0</__Magic>
+</ApplicationLicence>

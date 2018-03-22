@@ -1,0 +1,17 @@
+# perl build
+*.ok
+
+# emacs
+*~
+
+# application build
+*.pm.gen
+
+# bad habits
+*.new
+*.old
+*.bak
+*.sav
+*.log
+*-bak
+*-oldlocal/

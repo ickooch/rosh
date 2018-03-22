@@ -1,0 +1,206 @@
+package <TMPL_VAR NAME="application">::<TMPL_VAR NAME="plugin">;
+
+require AppImplementation;
+use base qw( AppImplementation );
+
+use strict;
+
+#
+# Copyright
+#
+
+use Data::Dump qw( dump );
+use Getopt::Long;
+use Try::Tiny;
+use JSON;
+
+use  <TMPL_VAR NAME="application">::<TMPL_VAR NAME="plugin">_IF;
+
+sub new {
+  my $this = bless({}, shift);
+
+  # !! GENERATED CONTENT !!
+  # This subroutine was generated as scaffolding for implementation
+  # of REST API access from command line.
+  # It is meant to be completed by hand.
+  # Remove this comment if the subroutine is final.
+  #
+  $this->frame( shift );
+  $this->version('1.0.0');
+  $this->provide([<TMPL_LOOP NAME="commands">
+     ['<TMPL_VAR NAME="name">', 'cmd_<TMPL_VAR NAME="name">' ],</TMPL_LOOP> 
+		 ]);
+  
+  return $this;
+}
+
+<TMPL_LOOP NAME="commands">
+sub cmd_<TMPL_VAR NAME="name"> {
+  my $stat = "";
+
+  my $this = shift;
+
+  # !! GENERATED CONTENT !!
+  # This subroutine was generated as scaffolding for implementation
+  # of REST API access from command line.
+  # It is meant to be completed by hand.
+  # Remove this comment if the subroutine is final.
+  #
+
+  my $long_usage = <TMPL_VAR NAME="application">::<TMPL_VAR NAME="plugin">_IF::<TMPL_VAR NAME="application_prefix">_<TMPL_VAR NAME="name">_usage();
+  my $usage = 'Usage: ' . $long_usage;
+  $usage =~ s/\nDESCRIPTION:.*//s;
+  if ( $this->preference( 'verbose' ) or $this->preference( 'debug' ) ) {
+      print 'Called: cmd_<TMPL_VAR NAME="name"> ';
+      print join(', ', @ARGV ); print "\n";
+  }
+  my ( <TMPL_LOOP NAME="options">$opt_<TMPL_VAR NAME="varname">, </TMPL_LOOP> );
+  GetOptions (<TMPL_LOOP NAME="options">
+      '<TMPL_VAR NAME="switchspec">' => \$opt_<TMPL_VAR NAME='varname'>,</TMPL_LOOP>
+      );
+<TMPL_IF NAME="opt-help">
+  if ( $opt_help ) {
+      print $long_usage;
+      return 0;
+  }</TMPL_IF>
+  my $json = JSON->new->allow_nonref;
+
+  my $<TMPL_VAR NAME="service_connector"> = $this->preference( '<TMPL_VAR NAME="service_connector">_connector' );
+
+  # initial option checking here
+  <TMPL_IF NAME="require_subject">my $subject = shift @ARGV;
+  if ( not $subject ) {
+      return "Error: Missing <TMPL_VAR NAME='noun'> argument.\n";
+  }
+  my $subject_id;
+  <TMPL_IF NAME="subject_is_key">$subject_id = $subject;<TMPL_ELSE># TODO / FIXME - Make sure $subject_id asserts!
+  try {
+      $subject_id = $<TMPL_VAR NAME="service_connector">->assert_object_id( '<TMPL_VAR NAME="noun">', $subject );
+  } catch {
+      die "Cannot determine id for <TMPL_VAR NAME='noun'> object \"$subject\".\n";
+  };</TMPL_IF></TMPL_IF>
+  <TMPL_IF NAME="required"><TMPL_LOOP NAME="required">if ( not <TMPL_VAR NAME="opt"> ) {
+    # TODO / FIXME - Insert appropriate error message here
+    die "Error: Missing option \<TMPL_VAR NAME="opt">.\n$usage\n";
+  }
+  </TMPL_LOOP></TMPL_IF>
+<TMPL_IF NAME="canfilter">  my $filter_re;
+  if ( @ARGV ) {
+      $filter_re = '^(' . join( '|', @ARGV ) . ')';
+  }
+</TMPL_IF><TMPL_IF NAME="opt-long">  if ( $opt_long ) {
+      $opt_short = '';
+  }
+</TMPL_IF><TMPL_IF NAME="opt-desc">  if ( $opt_desc ) {
+      $opt_desc = $this->get_description( $opt_desc );
+  }
+</TMPL_IF><TMPL_IF NAME="opt-project_id">  if ( not ( $opt_project_id or $opt_project ) ) {
+      $opt_project_id ||= $this->set( 'current_<TMPL_VAR NAME="service_connector">_project_id' );
+      return "Error: Please specify the project's name or id for which <TMPL_VAR NAME="noun">s should be listed.\n"
+          if ( not $opt_project_id );
+  }
+
+  my $prj_id = $opt_project_id;
+  if ( not $prj_id ) {
+      try {
+	  $prj_id = $<TMPL_VAR NAME="service_connector">->get_project_id( 'project', $opt_project );
+      } catch {
+	  print "No such project \"$opt_project\"\n";
+      };
+  }
+</TMPL_IF><TMPL_IF NAME="opt-group">  if ( $opt_group ) {
+      <TMPL_UNLESS NAME="opt-in">my $opt_in;</TMPL_UNLESS>
+      if ( not $opt_in ) {
+	  my $subject_id;
+	  try {
+	      $subject_id = $<TMPL_VAR NAME="service_connector">->get_object_id( 'group', $opt_group );
+	  } catch {
+	      die "Cannot determine id for group \"$opt_group\": $!\n";
+	  };
+	  $opt_in = $subject_id;
+      }
+      $endpoint_template = '/groups/' . $opt_in . '/projects';
+  }
+</TMPL_IF><TMPL_IF NAME="opt-in">  $opt_in ||= $this->preference( 'current_project' );
+  if ( not $opt_in ) {
+      die "<TMPL_VAR NAME="primary-verb"> <TMPL_VAR NAME="noun"> requires a defined project context. Use option --in <project>.\n
+
+$usage\n";
+  } 
+  # verify project id
+  my $project_id = $this->assert_project_id( $opt_in );
+</TMPL_IF><TMPL_IF NAME="opt-force">  if ( not ( $opt_force or $this->confirm( "Really <TMPL_VAR NAME="primary-verb"> <TMPL_VAR NAME='noun'> $subject ?", 'no' ))) {
+      $this->print( ucfirst "<TMPL_VAR NAME='noun'> $subject not <TMPL_VAR NAME='primary-ver'>d.\n" );
+      return $stat;
+  }</TMPL_IF>
+
+  # TODO / FIXME - verify / fill in the correct endpoint format after substitutions
+  my $endpoint = '<TMPL_VAR NAME="endpoint">';
+<TMPL_IF NAME="opt-in">  $endpoint =~ s/\/projects\/:project-id/\/projects\/$project_id/;
+  $endpoint =~ s/\/projects\/:id/\/projects\/$project_id/;<TMPL_IF NAME="require_subject">
+  $endpoint =~ s/\/:(\w+_)?id/\/$subject_id/;</TMPL_IF></TMPL_IF>
+<TMPL_IF NAME="require_params">  my $params = {<TMPL_LOOP NAME="options"> '<TMPL_VAR NAME="varname">' => $opt_<TMPL_VAR NAME="varname">,
+               </TMPL_LOOP><TMPL_IF NAME="require_subject">'id' => $subject_id<TMPL_ELSE><TMPL_IF NAME="opt-in">'id' => $project_id</TMPL_IF></TMPL_IF> };</TMPL_IF>
+  my @results;								 
+<TMPL_IF NAME="rest_get_list">  @results = @{ $<TMPL_VAR NAME="service_connector">->rest_get_list( $endpoint ) }; 
+<TMPL_IF NAME="canfilter">  if ( $filter_re ) {
+      @results = grep{ $_->{ '<TMPL_VAR NAME="canfilter">' } =~ m/${filter_re}/ } @results;
+  }
+</TMPL_IF><TMPL_IF NAME="opt-format">  if ( $opt_format ) {
+      print join( "\n", map { $<TMPL_VAR NAME="service_connector">->substitute_format( $opt_format, $_ ) } @results ) . "\n"; 
+  } elsif ( $opt_long ) {<TMPL_ELSE>
+  if ( $opt_long ) { </TMPL_IF>
+      print join( "\n", map { $_->{ 'id' } . ': ' . $json->pretty->encode( $_ ) } @results ) . "\n";
+  } else {
+      my $norm_format = '%F:name';
+      print join( "\n", map { $<TMPL_VAR NAME="service_connector">->substitute_format( $norm_format, $_ ) } @results ) . "\n";
+  }
+
+  # end this routine by returning a status indicator; not null means error!
+<TMPL_ELSE>
+<TMPL_IF NAME="rest_get_single">  my $result_obj = $<TMPL_VAR NAME="service_connector">->rest_get_single( $endpoint );
+  push( @results, $result_obj );
+</TMPL_IF><TMPL_IF NAME="rest_delete">  my $result_obj;
+  try {
+      $result_obj = $<TMPL_VAR NAME="service_connector">->rest_delete( $endpoint );
+  } catch {
+      # TODO / FIXME - appropriate message here
+      die "No such <TMPL_VAR NAME='noun'>: '$subject'\n";
+  };
+      
+  push( @results, $result_obj );
+</TMPL_IF><TMPL_IF NAME="rest_post">  my $result_obj;
+  try {
+      $result_obj = $<TMPL_VAR NAME="service_connector">->rest_post( $endpoint, $params );
+  } catch {
+      die "<TMPL_VAR NAME="primary-verb"> <TMPL_VAR NAME="noun"> failed: $_.\n";
+  };
+  my $result = from_json( $result_obj->{ 'body' } );
+  push( @results, $result );
+</TMPL_IF><TMPL_IF NAME="rest_put">  my $result_obj;
+  try {
+      $result_obj = $<TMPL_VAR NAME="service_connector">->rest_put( $endpoint, $params );
+  } catch {
+      die ucfirst "<TMPL_VAR NAME="primary-verb"> <TMPL_VAR NAME="noun"> failed: $_.\n";      
+  };
+  push( @results, $result_obj );
+</TMPL_IF><TMPL_IF NAME="opt-long"><TMPL_IF NAME="opt-format">  if ( $opt_format ) {
+      print join( "\n", map { $<TMPL_VAR NAME="service_connector">->substitute_format( $opt_format, $_ ) } @results ) . "\n"; 
+  } elsif ( $opt_long ) {<TMPL_ELSE>if ( $opt_long ) {</TMPL_IF>
+      print join( "\n", map { $json->pretty->encode( $_ ) } @results ) . "\n";
+  } else {
+      # TODO / FIXME - define custom normal format
+      my $norm_format = "%n (%i)";
+      print join( "\n", map { $<TMPL_VAR NAME="service_connector">->substitute_format( $norm_format, $_ ) } @results ) . "\n"; 
+  }<TMPL_ELSE>  print ucfirst "<TMPL_VAR NAME='primary-verb'>" . "d <TMPL_VAR NAME='noun'> " . join( "\n    ", map { $<TMPL_VAR NAME="service_connector">->substitute_format( '%n as %i', $_ ) } @results ) . "\n";</TMPL_IF>
+</TMPL_IF>
+  if ( $this->preference( 'verbose' ) or $this->preference( 'debug' ) ) {
+      print join( "\n", map { $json->pretty->encode( $_ ) } @results ) . "\n";
+  }
+  print "**** UNIMPLEMENTED: " . 'command <TMPL_VAR NAME="name"> in <TMPL_VAR NAME="application">::<TMPL_VAR NAME="plugin">' . "\n";
+
+  return $stat;
+}
+</TMPL_LOOP>
+
+1;

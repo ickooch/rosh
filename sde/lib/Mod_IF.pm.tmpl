@@ -1,0 +1,55 @@
+package <TMPL_VAR NAME="application">::<TMPL_VAR NAME="plugin">_IF;
+
+require AppInterface;
+use base qw( AppInterface );
+
+use strict;
+
+sub new {
+  my $this = bless({}, shift);
+
+  $this->frame(shift);
+  $this->name('<TMPL_VAR NAME="plugin">');
+  $this->version('1.0.0');
+  $this->commands([<TMPL_LOOP NAME="commands">{
+		    'name' => '<TMPL_VAR NAME="name">',                                # external command name (used by user)<TMPL_IF NAME="verb">
+                    'verb' => <TMPL_VAR NAME="verb">,
+                    'usage' => \&<TMPL_VAR NAME="application_prefix">_<TMPL_VAR NAME="name">_usage,
+		    'description' => '<TMPL_VAR NAME="primary-verb"> <TMPL_VAR NAME="noun">',</TMPL_IF>
+                    'category' => '<TMPL_VAR NAME="noun">',
+                    'version' => '',                                 # set when implementation is loaded
+		    'kind' => '<TMPL_VAR NAME="kind">',
+		    'entry' => undef,                                # set when implementation is loaded<TMPL_IF NAME="options">
+		    'options' =>  [ qw(<TMPL_LOOP NAME='options'>
+		                        <TMPL_VAR NAME='switchspec'></TMPL_LOOP>
+				      )
+				  ],</TMPL_IF>
+		   },
+		   </TMPL_LOOP>		   
+		  ]);
+
+  return $this;
+}
+
+#-------------------------------------------------------------------------------
+# print short usage notes
+#-------------------------------------------------------------------------------
+<TMPL_LOOP NAME="commands">sub <TMPL_VAR NAME="application_prefix">_<TMPL_VAR NAME="name">_usage
+{
+#    return "** UNIMPLEMENTED **";
+
+    return "<TMPL_VAR NAME='primary-verb'> <TMPL_VAR NAME="noun"> <TMPL_LOOP NAME='options'>--<TMPL_VAR NAME='switchspec'> </TMPL_LOOP><TMPL_IF NAME='canfilter'>[ name.. ]</TMPL_IF>
+
+DESCRIPTION:<TMPL_IF NAME="cmd_description">
+<TMPL_VAR NAME="cmd_description"></TMPL_IF>
+
+    The options are as follows:<TMPL_LOOP NAME='options'>
+    --<TMPL_VAR NAME='switchspec'><TMPL_IF NAME="description">
+<TMPL_VAR NAME="description">
+<TMPL_ELSE>    Description for option <TMPL_VAR NAME='varname'></TMPL_IF></TMPL_LOOP>
+";
+}
+
+</TMPL_LOOP>
+
+1;
