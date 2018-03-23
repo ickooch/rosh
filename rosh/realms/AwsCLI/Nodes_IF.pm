@@ -56,7 +56,9 @@ sub new {
 		    'entry' => undef,                                # set when implementation is loaded
 		    'options' =>  [ qw(
 		                        help
-		                        desc|d=s
+		                        proto=s
+		                        type=s
+		                        wait|w
 				      )
 				  ],
 		   },
@@ -86,6 +88,7 @@ sub new {
 		    'entry' => undef,                                # set when implementation is loaded
 		    'options' =>  [ qw(
 		                        help
+		                        wait|w
 				      )
 				  ],
 		   },
@@ -100,6 +103,7 @@ sub new {
 		    'entry' => undef,                                # set when implementation is loaded
 		    'options' =>  [ qw(
 		                        force|f
+		                        wait|w
 		                        help
 				      )
 				  ],
@@ -233,7 +237,7 @@ sub awscli_addnod_usage
 {
 #    return "** UNIMPLEMENTED **";
 
-    return "add node --help --desc|d=s 
+    return "add node --help --proto=s --type=s --wait|w 
 
 DESCRIPTION:
 
@@ -241,12 +245,30 @@ DESCRIPTION:
     --help
         Print this help, and command usage information.
 
-    --desc|d=s
-        Specify a short (quoted) description for a Aws resource object.
+    --proto=s
+        Specify an existing prototype in the creation of a new
+        object. If a protoype object is specified, all
+        relevant attributes of the object are used to set an
+        initial value for the respective attribute in the
+        newly created object.
 
-        If the argument has the form /@<filename>/, then the program
-        attempts to find a file with the specified name, and reads the
-        description from this file, if one is found.
+    --type=s
+        EC2 instance type
+        Supported types are:
+        - t2.micro (default)
+        - t2.{nano,micro,small,medium,large,xlarge,2xlarge}
+        - c4.{large,xlarge,2xlarge,4xlarge,8xlarge}
+        - c5.{large,xlarge,2xlarge,4xlarge,9xlarge,18xlarge}
+        - m4.{large,xlarge,2xlarge,4xlarge,10xlarge,16xlarge}
+        - m5.{large,xlarge,2xlarge,4xlarge,12xlarge,25xlarge}
+        See https://aws.amazon.com/de/ec2/instance-types/ for description
+        of the instance types.
+
+    --wait|w
+        Wait for the state change to complete.
+        The command keeps polling the state of the resource in intervalls
+        until it has reached the desired state, or until it failed.
+        
 
 ";
 }
@@ -271,13 +293,19 @@ sub awscli_startnod_usage
 {
 #    return "** UNIMPLEMENTED **";
 
-    return "start node --help 
+    return "start node --help --wait|w 
 
 DESCRIPTION:
 
     The options are as follows:
     --help
         Print this help, and command usage information.
+
+    --wait|w
+        Wait for the state change to complete.
+        The command keeps polling the state of the resource in intervalls
+        until it has reached the desired state, or until it failed.
+        
 
 ";
 }
@@ -286,12 +314,18 @@ sub awscli_stopnod_usage
 {
 #    return "** UNIMPLEMENTED **";
 
-    return "stop node --force|f --help 
+    return "stop node --force|f --wait|w --help 
 
 DESCRIPTION:
 
     The options are as follows:
     --force|f    Description for option force
+    --wait|w
+        Wait for the state change to complete.
+        The command keeps polling the state of the resource in intervalls
+        until it has reached the desired state, or until it failed.
+        
+
     --help
         Print this help, and command usage information.
 

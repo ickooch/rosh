@@ -81,7 +81,7 @@ if ( $opt_curl ) {
 }
 my $app_map = $builtin->get_applications();
 
-my $default_app = 'gitlab'; # backwards compatible default
+my $default_app = $builtin->get_default_realm();
 
 if ( not exists $app_map->{ $default_app } ) {
     $default_app = (keys %{ $app_map })[ 0 ];
@@ -230,6 +230,9 @@ while (1) {
     chomp($cmdline);
     $cmdline =~ s/^\s+//;
     $cmdline =~ s/\s+$//;
+    next
+      if ( $cmdline =~ m/^\s*$/ );
+    
     $Globals::rosh->trace("Cmdline: $cmdline");
 
     @ARGV = parse_line('\s+', 1, $cmdline);

@@ -42,10 +42,10 @@ all: compile build
 
 docker: docker_build
 
-docker_build: compile check_git_creds
+docker_build: check_git_creds
 	@docker build -t $(CONTAINER) --build-arg GIT_USER=$(GIT_USER) --build-arg GIT_TOKEN=$(GIT_TOKEN) .
 
-docker_push: compile check_docker_creds docker_build
+docker_push: check_docker_creds docker_build
 	@docker login -u $(DOCKER_USER) -p $(DOCKER_TOKEN) $(DOCKER_REGISTRY)
 	@docker push $(CONTAINER)
 

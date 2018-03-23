@@ -252,6 +252,9 @@ sub awscli {
 
     my $cmd = 'aws ' . join( ' ', @args );
     # print "** exec cmd: $cmd\n";
+    if ( $this->preference( 'show_curl' ) ) {
+      print $cmd . "\n";
+    }
     my $res = `$cmd`;
 
     my $result;

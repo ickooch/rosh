@@ -8,4 +8,4 @@ if [ -d "$ROSH_LIBREALM" ]
 then
     REALMS="-v $ROSH_LIBREALM:/opt/rosh/realms"
 fi
-docker run --name=rosh-$$ --rm -it -v ~:/opt/rosh/data $AWS_VOL $REALMS ickooch/rosh:latest
+echo docker run --name=rosh-$$ --rm -it -v ~:/opt/rosh/data $AWS_VOL $REALMS ickooch/rosh:latest

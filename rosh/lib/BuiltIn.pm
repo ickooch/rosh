@@ -127,6 +127,16 @@ sub new {
   return $this;
 }
 
+sub get_default_realm {
+  my $this = shift;
+
+  my $config = $this->{ 'config' };
+  if ( exists $config->{ 'default-realm' } ) {
+    return $config->{ 'default-realm' };
+  }
+  return 'gitlab'; # legacy static default
+}
+
 sub link_application {
     my ( $this, $app ) = @_;
 

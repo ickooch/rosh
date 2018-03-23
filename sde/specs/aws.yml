@@ -387,6 +387,20 @@ DUMMY_FOR_OPTIONS:
 
                 For example, copy an existing webhook to an existing project
                 with 'copy webhook 842 --to my_project.
+    - &opt-type
+      switchspec: type=s
+      varname: type
+      description: |-2
+                EC2 instance type
+                Supported types are:
+                - t2.micro (default)
+                - t2.{nano,micro,small,medium,large,xlarge,2xlarge}
+                - c4.{large,xlarge,2xlarge,4xlarge,8xlarge}
+                - c5.{large,xlarge,2xlarge,4xlarge,9xlarge,18xlarge}
+                - m4.{large,xlarge,2xlarge,4xlarge,10xlarge,16xlarge}
+                - m5.{large,xlarge,2xlarge,4xlarge,12xlarge,25xlarge}
+                See https://aws.amazon.com/de/ec2/instance-types/ for description
+                of the instance types.
     - &opt-url
       switchspec: url=s
       varname: url
@@ -399,6 +413,14 @@ DUMMY_FOR_OPTIONS:
     - &opt-visibility
       switchspec: visibility=s
       varname: visibility
+    - &opt-wait
+      switchspec: wait|w
+      varname: wait
+      description: |-2
+                Wait for the state change to complete.
+                The command keeps polling the state of the resource in intervalls
+                until it has reached the desired state, or until it failed.
+                
 #
 ################################################################################
 ################################################################################
@@ -486,7 +508,9 @@ Nodes:
     require_subject: 1
     options:
     - *opt-help
-    - *opt-desc
+    - *opt-proto
+    - *opt-type
+    - *opt-wait
     request_type: POST
   - name: delete*
     verb: delete
@@ -504,6 +528,7 @@ Nodes:
     require_subject: 1
     options:
     - *opt-help
+    - *opt-wait
     request_type: POST
   - name: stop*
     verb: stop
@@ -513,6 +538,7 @@ Nodes:
     endpoint: ec2 stop-instance
     options:
     - *opt-force
+    - *opt-wait
     - *opt-help
   kind: resource
   noun: node

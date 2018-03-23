@@ -43,7 +43,7 @@ sub new {
 sub cmd_lsnod {
   my $stat = "";
 
-  my $this = shift;
+  my ( $this, @instance_ids ) = @_;
 
   my $long_usage = AwsCLI::Nodes_IF::awscli_lsnod_usage();
   my $usage = 'Usage: ' . $long_usage;
@@ -63,7 +63,8 @@ sub cmd_lsnod {
   if ( $opt_help ) {
       print $long_usage;
       return 0;
-  }
+    }
+  
   my $json = JSON->new->allow_nonref;
 
   my $aws = $this->preference( 'aws_connector' );
@@ -79,12 +80,16 @@ sub cmd_lsnod {
       $opt_short = '';
   }
 
-
   my $endpoint = 'ec2 describe-instances';
 
 
-  my @results;								 
-  @results = @{ $aws->rest_get_list( $endpoint ) }; 
+  my @results;
+  try {
+    @results = @{ $aws->rest_get_list( $endpoint . ( @instance_ids ? ' --instance-ids ' . join( ' ', @instance_ids ) : '' ) ) };
+  } catch {
+    chomp $_;
+    die "** Error: $_\n";
+  };
   #
   # We get "Reservations" here, that contain the actual instances.
   # Since we're not interested in the Reservation objects, we pluck the
@@ -92,6 +97,10 @@ sub cmd_lsnod {
   #
   @results = map { @{ $_->{ 'Instances' } } } @results;
 
+  if ( ( caller() )[ 0 ] ne 'AppRegister' ) {
+    return \@results;
+  }
+  
   # the instances have no names, but names are often represented as a tag, so look for it
   foreach my $inst ( @results ) {
       if ( exists $inst->{ 'Tags' } and grep { $_->{ 'Key' } eq 'Name' } @{ $inst->{ 'Tags' } } ) {
@@ -124,9 +133,9 @@ sub cmd_lsnod {
 }
 
 sub cmd_descnod {
+  my ( $this, $nodeid ) = @_;
+  
   my $stat = "";
-
-  my $this = shift;
 
   my $long_usage = AwsCLI::Nodes_IF::awscli_descnod_usage();
   my $usage = 'Usage: ' . $long_usage;
@@ -135,9 +144,12 @@ sub cmd_descnod {
       print 'Called: cmd_descnod ';
       print join(', ', @ARGV ); print "\n";
   }
-  my $opt_help;
+  my ( $opt_help, $opt_short, $opt_long, $opt_format,  );
   GetOptions (
       'help' => \$opt_help,
+      'short|s' => \$opt_short,
+      'long|l' => \$opt_long,
+      'format|fmt=s' => \$opt_format,
       );
 
   if ( $opt_help ) {
@@ -147,12 +159,47 @@ sub cmd_descnod {
 
   # initial option checking here
   my $subject = $ARGV[ 0 ];
+  $subject ||= $nodeid;
   if ( not $subject ) {
       return "Error: Missing node argument.\n";
   }
   push( @ARGV, '-l' );
   
-  return $this->cmd_lsnod();
+  my $results;
+  try {
+    $results = $this->cmd_lsnod( $subject );
+  } catch {
+    die "** ERROR: Cannot find compute node with id '$subject'\n";
+  };
+
+  my $nodeinfo = $results->[ 0 ];
+  if ( $nodeid ) { # we've been called as a subroutine, not as a command
+    return $nodeinfo;
+  }
+  
+  my $aws = $this->preference( 'aws_connector' );
+  my $json = JSON->new->allow_nonref;
+
+  if ( $opt_format ) {
+      print $aws->substitute_format( $opt_format, $nodeinfo ) . "\n"; 
+  } elsif ( $opt_long ) {
+      print $nodeinfo->{ 'InstanceId' } . ': ' . $json->pretty->encode( $nodeinfo ) . "\n";
+  } else {
+      my $norm_format_running = "Node: %F:InstanceId(20) %n %F:InstanceType %F:State.Name
+  DNS (intern): %F:PrivateDnsName
+  DNS (public): %F:PublicDnsName
+  IP (intern): %F:PrivateIpAddress
+  IP (extern): %F:PublicIpAddress
+  Image-Id: %F:ImageId
+  Launched on: %F:LaunchTime";
+      my $norm_format_stopped = "Node: %F:InstanceId(20) %n %F:InstanceType %F:State.Name
+  DNS (intern): %F:PrivateDnsName
+  Image-Id: %F:ImageId";
+      my $norm_format = ( $nodeinfo->{ 'State' }->{ 'Name' } eq 'running' ) ? $norm_format_running : $norm_format_stopped;
+      print $aws->substitute_format( $norm_format, $nodeinfo ) . "\n"; 
+  }
+
+  return $stat;
 }
 
 sub cmd_addnod {
@@ -174,10 +221,12 @@ sub cmd_addnod {
       print 'Called: cmd_addnod ';
       print join(', ', @ARGV ); print "\n";
   }
-  my ( $opt_help, $opt_desc,  );
+  my ( $opt_help, $opt_prototype, $opt_type, $opt_wait,  );
   GetOptions (
       'help' => \$opt_help,
-      'desc|d=s' => \$opt_desc,
+      'proto=s' => \$opt_prototype,
+      'type=s' => \$opt_type,
+      'wait|w' => \$opt_wait,
       );
 
   if ( $opt_help ) {
@@ -201,17 +250,10 @@ sub cmd_addnod {
       die "Cannot determine id for node object \"$subject\".\n";
   };
   
-  if ( $opt_desc ) {
-      $opt_desc = $this->get_description( $opt_desc );
-  }
-
-
   # TODO / FIXME - verify / fill in the correct endpoint format after substitutions
   my $endpoint = 'run-instances';
 
-  my $params = { 'help' => $opt_help,
-                'desc' => $opt_desc,
-               'id' => $subject_id };
+  my $params;
   my @results;								 
 
   my $result_obj;
@@ -313,13 +355,6 @@ sub cmd_startnod {
 
   my $this = shift;
 
-  # !! GENERATED CONTENT !!
-  # This subroutine was generated as scaffolding for implementation
-  # of REST API access from command line.
-  # It is meant to be completed by hand.
-  # Remove this comment if the subroutine is final.
-  #
-
   my $long_usage = AwsCLI::Nodes_IF::awscli_startnod_usage();
   my $usage = 'Usage: ' . $long_usage;
   $usage =~ s/\nDESCRIPTION:.*//s;
@@ -327,56 +362,58 @@ sub cmd_startnod {
       print 'Called: cmd_startnod ';
       print join(', ', @ARGV ); print "\n";
   }
-  my ( $opt_help,  );
+  my ( $opt_help, $opt_wait,  );
   GetOptions (
       'help' => \$opt_help,
+      'wait|w' => \$opt_wait,
       );
 
   if ( $opt_help ) {
       print $long_usage;
       return 0;
   }
-  my $json = JSON->new->allow_nonref;
-
-  my $aws = $this->preference( 'aws_connector' );
 
   # initial option checking here
-  my $subject = shift @ARGV;
+  my $subject = $ARGV[ 0 ];
   if ( not $subject ) {
       return "Error: Missing node argument.\n";
   }
-  my $subject_id;
-  # TODO / FIXME - Make sure $subject_id asserts!
-  try {
-      $subject_id = $aws->assert_object_id( 'node', $subject );
-  } catch {
-      die "Cannot determine id for node object \"$subject\".\n";
-  };
-  
 
+  my $aws = $this->preference( 'aws_connector' );
 
-  # TODO / FIXME - verify / fill in the correct endpoint format after substitutions
-  my $endpoint = 'start-instance';
+  my $endpoint = 'ec2 start-instances --instance-ids';
 
-  my $params = { 'help' => $opt_help,
-               'id' => $subject_id };
-  my @results;								 
-
-  my $result_obj;
-  try {
-      $result_obj = $aws->rest_post( $endpoint, $params );
-  } catch {
-      die "start node failed: $_.\n";
-  };
-  my $result = from_json( $result_obj->{ 'body' } );
-  push( @results, $result );
-  print ucfirst "start" . "d node " . join( "\n    ", map { $aws->substitute_format( '%n as %i', $_ ) } @results ) . "\n";
-
-  if ( $this->preference( 'verbose' ) or $this->preference( 'debug' ) ) {
-      print join( "\n", map { $json->pretty->encode( $_ ) } @results ) . "\n";
+  my $response = $aws->rest_get_single( $endpoint . ' ' . $subject ); 
+  my $nodeinfo;
+  if ( $opt_wait ) {
+    print "Compute node $subject started. Waiting for it to come up..\n";
+    my $waitfor = 'running';
+    my $timeout = 200;
+    my $interval = 5;
+    my $waited = 0;
+    while ( $nodeinfo = $this->cmd_descnod( $subject ) and
+	    ( $nodeinfo->{ 'State' }->{ 'Name' } ne $waitfor ) ) {
+      if ( $waited > $timeout ) {
+	die "** Error: Compute node $subject started but didn't come up.\n";
+      }
+      select( STDOUT );
+      $| = 1;
+      print "\r" . 100 x ' ' . "\r[current state is " . $nodeinfo->{ 'State' }->{ 'Name' } .
+	" waiting for $waitfor ($waited)]";
+      $| = 0;
+      sleep( $interval );
+      $waited += $interval;
+    }
+    print "\nCompute node $subject now up and running.\n";
+    print 
+  } else {
+    print "Compute node $subject started, current state is '" .
+      $response->{ 'StartingInstances' }->[0]->{ 'CurrentState' }->{ 'Name' } . "'.\n";
   }
-  print "**** UNIMPLEMENTED: " . 'command startnod in AwsCLI::Nodes' . "\n";
-
+  $nodeinfo = $this->cmd_descnod( $subject );
+  print "Connect $subject at IP " . $nodeinfo->{ 'PublicIpAddress' } . " (" .
+    $nodeinfo->{ 'PublicDnsName' } . ")\n";
+    
   return $stat;
 }
 
@@ -385,23 +422,17 @@ sub cmd_stopnod {
 
   my $this = shift;
 
-  # !! GENERATED CONTENT !!
-  # This subroutine was generated as scaffolding for implementation
-  # of REST API access from command line.
-  # It is meant to be completed by hand.
-  # Remove this comment if the subroutine is final.
-  #
-
-  my $long_usage = AwsCLI::Nodes_IF::awscli_stopnod_usage();
+  my $long_usage = AwsCLI::Nodes_IF::awscli_startnod_usage();
   my $usage = 'Usage: ' . $long_usage;
   $usage =~ s/\nDESCRIPTION:.*//s;
   if ( $this->preference( 'verbose' ) or $this->preference( 'debug' ) ) {
-      print 'Called: cmd_stopnod ';
+      print 'Called: cmd_startnod ';
       print join(', ', @ARGV ); print "\n";
   }
-  my ( $opt_force, $opt_help,  );
+  my ( $opt_force, $opt_wait, $opt_help,  );
   GetOptions (
       'force|f' => \$opt_force,
+      'wait|w' => \$opt_wait,
       'help' => \$opt_help,
       );
 
@@ -409,50 +440,44 @@ sub cmd_stopnod {
       print $long_usage;
       return 0;
   }
-  my $json = JSON->new->allow_nonref;
-
-  my $aws = $this->preference( 'aws_connector' );
 
   # initial option checking here
-  my $subject = shift @ARGV;
+  my $subject = $ARGV[ 0 ];
   if ( not $subject ) {
       return "Error: Missing node argument.\n";
   }
-  my $subject_id;
-  # TODO / FIXME - Make sure $subject_id asserts!
-  try {
-      $subject_id = $aws->assert_object_id( 'node', $subject );
-  } catch {
-      die "Cannot determine id for node object \"$subject\".\n";
-  };
-  
-  if ( not ( $opt_force or $this->confirm( "Really stop node $subject ?", 'no' ))) {
-      $this->print( ucfirst "node $subject not d.\n" );
-      return $stat;
+
+  my $aws = $this->preference( 'aws_connector' );
+
+  my $endpoint = 'ec2 stop-instances --instance-ids';
+
+  my $response = $aws->rest_get_single( $endpoint . ' ' . $subject ); 
+
+  my $nodeinfo;
+  if ( $opt_wait ) {
+    print "Requested compute node $subject to stop. Waiting for it to come down..\n";
+    my $waitfor = 'stopped';
+    my $timeout = 200;
+    my $interval = 5;
+    my $waited = 0;
+    while ( $nodeinfo = $this->cmd_descnod( $subject ) and
+	    ( $nodeinfo->{ 'State' }->{ 'Name' } ne $waitfor ) ) {
+      if ( $waited > $timeout ) {
+	die "** Error: Requested compute node $subject to stop but doesn't go down.\n";
+      }
+      select( STDOUT );
+      $| = 1;
+      print "\r" . 100 x ' ' . "\r[current state is " . $nodeinfo->{ 'State' }->{ 'Name' } .
+	" waiting for $waitfor ($waited)]";
+      $| = 0;
+      sleep( $interval );
+      $waited += $interval;
+    }
+    print "\nCompute node $subject stopped.\n";
+  } else {
+    print "Requested compute node $subject to stop, current state is '" .
+      $response->{ 'StoppingInstances' }->[0]->{ 'CurrentState' }->{ 'Name' } . "'.\n";
   }
-
-  # TODO / FIXME - verify / fill in the correct endpoint format after substitutions
-  my $endpoint = 'stop-instance';
-
-  my $params = { 'force' => $opt_force,
-                'help' => $opt_help,
-               'id' => $subject_id };
-  my @results;								 
-
-  my $result_obj;
-  try {
-      $result_obj = $aws->rest_post( $endpoint, $params );
-  } catch {
-      die "stop node failed: $_.\n";
-  };
-  my $result = from_json( $result_obj->{ 'body' } );
-  push( @results, $result );
-  print ucfirst "stop" . "d node " . join( "\n    ", map { $aws->substitute_format( '%n as %i', $_ ) } @results ) . "\n";
-
-  if ( $this->preference( 'verbose' ) or $this->preference( 'debug' ) ) {
-      print join( "\n", map { $json->pretty->encode( $_ ) } @results ) . "\n";
-  }
-  print "**** UNIMPLEMENTED: " . 'command stopnod in AwsCLI::Nodes' . "\n";
 
   return $stat;
 }

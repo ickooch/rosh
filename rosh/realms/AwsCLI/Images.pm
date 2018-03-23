@@ -43,13 +43,6 @@ sub cmd_lsimg {
 
   my $this = shift;
 
-  # !! GENERATED CONTENT !!
-  # This subroutine was generated as scaffolding for implementation
-  # of REST API access from command line.
-  # It is meant to be completed by hand.
-  # Remove this comment if the subroutine is final.
-  #
-
   my $long_usage = AwsCLI::Images_IF::awscli_lsimg_usage();
   my $usage = 'Usage: ' . $long_usage;
   $usage =~ s/\nDESCRIPTION:.*//s;
@@ -86,7 +79,7 @@ sub cmd_lsimg {
 
 
   # TODO / FIXME - verify / fill in the correct endpoint format after substitutions
-  my $endpoint = 'describe-images';
+  my $endpoint = 'ec2 describe-images --owners self';
 
 
   my @results;								 
@@ -99,7 +92,12 @@ sub cmd_lsimg {
   } elsif ( $opt_long ) {
       print join( "\n", map { $_->{ 'id' } . ': ' . $json->pretty->encode( $_ ) } @results ) . "\n";
   } else {
-      print join( "\n", map { exists $_->{ 'name' } ? "$_->{ 'name' }\t ($_->{ 'id' })" : "($_->{ 'id' })" } @results ) . "\n";
+      my $norm_format = "%F:ImageId(20): %F:Name
+  Description: %F:Description
+  Created: %F:CreationDate
+  Public: %F:Public\n";
+      print join( "\n", map { $aws->substitute_format( $norm_format, $_ ) } 
+		  sort { $a->{ 'name' } cmp $b->{ 'name' } } @results ) . "\n"; 
   }
 
   # end this routine by returning a status indicator; not null means error!
@@ -107,7 +105,6 @@ sub cmd_lsimg {
   if ( $this->preference( 'verbose' ) or $this->preference( 'debug' ) ) {
       print join( "\n", map { $json->pretty->encode( $_ ) } @results ) . "\n";
   }
-  print "**** UNIMPLEMENTED: " . 'command lsimg in AwsCLI::Images' . "\n";
 
   return $stat;
 }
