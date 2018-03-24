@@ -30,6 +30,7 @@ sub new {
   $this->provide([
      ['lsnod', 'cmd_lsnod' ],
      ['descnod', 'cmd_descnod' ],
+     ['consolenod', 'cmd_consolenod' ],
      ['addnod', 'cmd_addnod' ],
      ['deletenod', 'cmd_deletenod' ],
      ['startnod', 'cmd_startnod' ],
@@ -185,48 +186,53 @@ sub cmd_descnod {
   } elsif ( $opt_long ) {
       print $nodeinfo->{ 'InstanceId' } . ': ' . $json->pretty->encode( $nodeinfo ) . "\n";
   } else {
-      my $norm_format_running = "Node: %F:InstanceId(20) %n %F:InstanceType %F:State.Name
-  DNS (intern): %F:PrivateDnsName
-  DNS (public): %F:PublicDnsName
-  IP (intern): %F:PrivateIpAddress
-  IP (extern): %F:PublicIpAddress
-  Image-Id: %F:ImageId
-  Launched on: %F:LaunchTime";
-      my $norm_format_stopped = "Node: %F:InstanceId(20) %n %F:InstanceType %F:State.Name
-  DNS (intern): %F:PrivateDnsName
-  Image-Id: %F:ImageId";
-      my $norm_format = ( $nodeinfo->{ 'State' }->{ 'Name' } eq 'running' ) ? $norm_format_running : $norm_format_stopped;
-      print $aws->substitute_format( $norm_format, $nodeinfo ) . "\n"; 
+    $this->desc_node( $nodeinfo );
   }
 
   return $stat;
 }
 
-sub cmd_addnod {
+sub desc_node {
+  my ( $this, $nodeinfo ) = @_;
+
+  my $aws = $this->preference( 'aws_connector' );
+
+  my $norm_format_running = "Node: %F:InstanceId(20) %n %F:InstanceType %F:State.Name
+  DNS (intern): %F:PrivateDnsName
+  DNS (public): %F:PublicDnsName
+  IP (intern): %F:PrivateIpAddress
+  IP (extern): %F:PublicIpAddress
+  Subnet Id: %F:SubnetId
+  VPC Id: %F:VpcId
+  Image-Id: %F:ImageId
+  Launched on: %F:LaunchTime";
+      
+  my $norm_format_stopped = "Node: %F:InstanceId(20) %n %F:InstanceType %F:State.Name
+  DNS (intern): %F:PrivateDnsName
+  Subnet Id: %F:SubnetId
+  VPC Id: %F:VpcId
+  Image-Id: %F:ImageId";
+      my $norm_format = ( $nodeinfo->{ 'State' }->{ 'Name' } eq 'running' ) ? $norm_format_running : $norm_format_stopped;
+  print $aws->substitute_format( $norm_format, $nodeinfo ) . "\n";
+
+  return $this;
+}
+
+sub cmd_consolenod {
   my $stat = "";
 
   my $this = shift;
 
-  # !! GENERATED CONTENT !!
-  # This subroutine was generated as scaffolding for implementation
-  # of REST API access from command line.
-  # It is meant to be completed by hand.
-  # Remove this comment if the subroutine is final.
-  #
-
-  my $long_usage = AwsCLI::Nodes_IF::awscli_addnod_usage();
+  my $long_usage = AwsCLI::Nodes_IF::awscli_consolenod_usage();
   my $usage = 'Usage: ' . $long_usage;
   $usage =~ s/\nDESCRIPTION:.*//s;
   if ( $this->preference( 'verbose' ) or $this->preference( 'debug' ) ) {
-      print 'Called: cmd_addnod ';
+      print 'Called: cmd_consolenod ';
       print join(', ', @ARGV ); print "\n";
   }
-  my ( $opt_help, $opt_prototype, $opt_type, $opt_wait,  );
+  my ( $opt_help,  );
   GetOptions (
       'help' => \$opt_help,
-      'proto=s' => \$opt_prototype,
-      'type=s' => \$opt_type,
-      'wait|w' => \$opt_wait,
       );
 
   if ( $opt_help ) {
@@ -242,35 +248,88 @@ sub cmd_addnod {
   if ( not $subject ) {
       return "Error: Missing node argument.\n";
   }
-  my $subject_id;
-  # TODO / FIXME - Make sure $subject_id asserts!
-  try {
-      $subject_id = $aws->assert_object_id( 'node', $subject );
-  } catch {
-      die "Cannot determine id for node object \"$subject\".\n";
-  };
-  
+
   # TODO / FIXME - verify / fill in the correct endpoint format after substitutions
-  my $endpoint = 'run-instances';
+  my $endpoint = 'ec2 get-console-output --instance-id ';
 
-  my $params;
-  my @results;								 
+  my $result_obj = $aws->rest_get_single( $endpoint  . $subject );
 
-  my $result_obj;
-  try {
-      $result_obj = $aws->rest_post( $endpoint, $params );
-  } catch {
-      die "add node failed: $_.\n";
-  };
-  my $result = from_json( $result_obj->{ 'body' } );
-  push( @results, $result );
-  print ucfirst "add" . "d node " . join( "\n    ", map { $aws->substitute_format( '%n as %i', $_ ) } @results ) . "\n";
+  print "[node $subject console on $result_obj->{ 'Timestamp' }]\n";
+  print $result_obj->{ 'Output' } . "\n";
 
+  return $stat;
+}
+
+sub cmd_addnod {
+  my $stat = "";
+
+  my $this = shift;
+
+  my $long_usage = AwsCLI::Nodes_IF::awscli_addnod_usage();
+  my $usage = 'Usage: ' . $long_usage;
+  $usage =~ s/\nDESCRIPTION:.*//s;
   if ( $this->preference( 'verbose' ) or $this->preference( 'debug' ) ) {
-      print join( "\n", map { $json->pretty->encode( $_ ) } @results ) . "\n";
+      print 'Called: cmd_addnod ';
+      print join(', ', @ARGV ); print "\n";
   }
-  print "**** UNIMPLEMENTED: " . 'command addnod in AwsCLI::Nodes' . "\n";
+  my ( $opt_help, $opt_prototype, $opt_type, $opt_wait, $opt_count, $opt_image,  );
+  GetOptions (
+      'help' => \$opt_help,
+      'proto|like=s' => \$opt_prototype,
+      'type=s' => \$opt_type,
+      'wait|w' => \$opt_wait,
+      'count|num|#=i' => \$opt_count,
+      'image=s' => \$opt_image,
+      );
 
+  if ( $opt_help ) {
+      print $long_usage;
+      return 0;
+  }
+
+  # validate arguments
+  my @proto_args;
+  if ( $opt_prototype ) {
+    my $proto_node;
+    try {
+      $proto_node = $this->cmd_descnod( $opt_prototype );
+    } catch {
+      chomp $_;
+      die "** Invalid node prototype instance specified: $_.\n";
+    };
+    $opt_type ||= $proto_node->{ 'InstanceType' };
+    $opt_image ||= $proto_node->{ 'ImageId' };
+    @proto_args = ( '--subnet-id', $proto_node->{ 'SubnetId' } );
+  }
+  if ( $opt_count ) {
+    push( @proto_args, '--count', $opt_count );
+  }
+  die "** Error: No image id or protoype instance specified. Need to specify a machine image.\n"
+    if ( not $opt_image );
+
+  $opt_type ||= 'm1.micro'; # the AWS default instance type
+
+  my $json = JSON->new->allow_nonref;
+
+  my $aws = $this->preference( 'aws_connector' );
+
+  # TODO / FIXME - verify / fill in the correct endpoint format after substitutions
+  my $endpoint = 'ec2 run-instances';
+
+  my @new_nodes;
+  try {
+    @new_nodes = @{ $aws->rest_post( "$endpoint --image-id $opt_image --instance-type $opt_type " .
+				 join( ' ', @proto_args ) )->{ 'Instances' } };
+  } catch {
+    chomp $_;
+    die "add node failed: $_.\n";
+  };
+  print "Added new node" . ( @new_nodes > 1 ? 's' : '' ) . ":\n";
+  foreach my $node ( @new_nodes ) {
+    $this->desc_node( $node );
+    print "\n";
+  }
+  
   return $stat;
 }
 
@@ -278,13 +337,6 @@ sub cmd_deletenod {
   my $stat = "";
 
   my $this = shift;
-
-  # !! GENERATED CONTENT !!
-  # This subroutine was generated as scaffolding for implementation
-  # of REST API access from command line.
-  # It is meant to be completed by hand.
-  # Remove this comment if the subroutine is final.
-  #
 
   my $long_usage = AwsCLI::Nodes_IF::awscli_deletenod_usage();
   my $usage = 'Usage: ' . $long_usage;
@@ -312,41 +364,26 @@ sub cmd_deletenod {
   if ( not $subject ) {
       return "Error: Missing node argument.\n";
   }
-  my $subject_id;
-  # TODO / FIXME - Make sure $subject_id asserts!
-  try {
-      $subject_id = $aws->assert_object_id( 'node', $subject );
-  } catch {
-      die "Cannot determine id for node object \"$subject\".\n";
-  };
   
-  if ( not ( $opt_force or $this->confirm( "Really delete node $subject ?", 'no' ))) {
+  if ( not ( $opt_force or $this->confirm( "Really delete node $subject ? Data stored on ephemeral storage will be lost!", 'no' ))) {
       $this->print( ucfirst "node $subject not d.\n" );
       return $stat;
   }
 
-  # TODO / FIXME - verify / fill in the correct endpoint format after substitutions
-  my $endpoint = '/usermanagement/1/node';
-
+  my $endpoint = 'ec2 terminate-instances --instance-ids ';
 
   my @results;								 
 
   my $result_obj;
   try {
-      $result_obj = $aws->rest_delete( $endpoint );
+      $result_obj = $aws->rest_delete( "$endpoint $subject" );
   } catch {
-      # TODO / FIXME - appropriate message here
-      die "No such node: '$subject'\n";
+    chomp $_;
+    die "** Error: delete node $subject failed: $_\n";
   };
-      
-  push( @results, $result_obj );
-  print ucfirst "delete" . "d node " . join( "\n    ", map { $aws->substitute_format( '%n as %i', $_ ) } @results ) . "\n";
 
-  if ( $this->preference( 'verbose' ) or $this->preference( 'debug' ) ) {
-      print join( "\n", map { $json->pretty->encode( $_ ) } @results ) . "\n";
-  }
-  print "**** UNIMPLEMENTED: " . 'command deletenod in AwsCLI::Nodes' . "\n";
-
+  print "Terminated node $subject. It will remain visible for approx. 1 hour before disappearing for good.\n";
+  
   return $stat;
 }
 
@@ -480,25 +517,6 @@ sub cmd_stopnod {
   }
 
   return $stat;
-}
-
-
-sub assert_project_id {
-    my ($this, $pid ) = @_;
-
-    my $aws = $this->preference( 'aws_connector' );
-
-    my $project_id;
-    try {
-	$project_id = $aws->get_project_id( $pid );
-    } catch {
-	die "Cannot determine id for project object \"$pid\" ($_).\n";
-    };
-    $this->set( 'current_project', $pid );
-    $this->set( 'current_project_id', $project_id );
-    $this->set( 'prompt', "($pid)" . '@csc>' );
-
-    return $project_id;
 }
 
 1;

@@ -46,8 +46,22 @@ sub new {
 				  ],
 		   },
 		   {
+		    'name' => 'consolenod',                                # external command name (used by user)
+                    'verb' => [ 'get console output of', 'console', 'cons', 'cat' ],
+                    'usage' => \&awscli_consolenod_usage,
+		    'description' => 'get console output of node',
+                    'category' => 'node',
+                    'version' => '',                                 # set when implementation is loaded
+		    'kind' => 'cli',
+		    'entry' => undef,                                # set when implementation is loaded
+		    'options' =>  [ qw(
+		                        help
+				      )
+				  ],
+		   },
+		   {
 		    'name' => 'addnod',                                # external command name (used by user)
-                    'verb' => [ 'add' ],
+                    'verb' => [ 'add', 'create', 'new', 'make', 'clone' ],
                     'usage' => \&awscli_addnod_usage,
 		    'description' => 'add node',
                     'category' => 'node',
@@ -56,15 +70,17 @@ sub new {
 		    'entry' => undef,                                # set when implementation is loaded
 		    'options' =>  [ qw(
 		                        help
-		                        proto=s
+		                        proto|like=s
 		                        type=s
 		                        wait|w
+		                        count|num|#=i
+		                        image=s
 				      )
 				  ],
 		   },
 		   {
 		    'name' => 'deletenod',                                # external command name (used by user)
-                    'verb' => [ 'delete' ],
+                    'verb' => [ 'delete', 'terminate', 'remove' ],
                     'usage' => \&awscli_deletenod_usage,
 		    'description' => 'delete node',
                     'category' => 'node',
@@ -233,11 +249,27 @@ DESCRIPTION:
 ";
 }
 
+sub awscli_consolenod_usage
+{
+#    return "** UNIMPLEMENTED **";
+
+    return "get console output of node --help 
+
+DESCRIPTION:
+    Capture the output to the node's console.
+
+    The options are as follows:
+    --help
+        Print this help, and command usage information.
+
+";
+}
+
 sub awscli_addnod_usage
 {
 #    return "** UNIMPLEMENTED **";
 
-    return "add node --help --proto=s --type=s --wait|w 
+    return "add node --help --proto|like=s --type=s --wait|w --count|num|#=i --image=s 
 
 DESCRIPTION:
 
@@ -245,7 +277,7 @@ DESCRIPTION:
     --help
         Print this help, and command usage information.
 
-    --proto=s
+    --proto|like=s
         Specify an existing prototype in the creation of a new
         object. If a protoype object is specified, all
         relevant attributes of the object are used to set an
@@ -269,6 +301,10 @@ DESCRIPTION:
         The command keeps polling the state of the resource in intervalls
         until it has reached the desired state, or until it failed.
         
+
+    --count|num|#=i    Description for option count
+    --image=s
+        Specify an AMI image for the new VM node.
 
 ";
 }

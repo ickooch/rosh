@@ -2,10 +2,10 @@
 
 if [ -d ~/.aws ]
 then
-    AWS_VOL="-v ~/.aws:/opt/rosh/data/aws"
+    AWS_VOL="-v $HOME/.aws:/opt/rosh/data/aws"
 fi
 if [ -d "$ROSH_LIBREALM" ]
 then
     REALMS="-v $ROSH_LIBREALM:/opt/rosh/realms"
 fi
-echo docker run --name=rosh-$$ --rm -it -v ~:/opt/rosh/data $AWS_VOL $REALMS ickooch/rosh:latest
+docker run --name=rosh-$$ --rm -it -v ~:/opt/rosh/data $AWS_VOL $REALMS ickooch/rosh:latest

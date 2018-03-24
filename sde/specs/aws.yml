@@ -74,6 +74,9 @@ DUMMY_FOR_OPTIONS:
     - &opt-branch
       switchspec: branch|b=s
       varname: branch
+    - &opt-count
+      switchspec: count|num|#=i
+      varname: count
     - &opt-desc
       switchspec: desc|d=s
       varname: desc
@@ -328,7 +331,7 @@ DUMMY_FOR_OPTIONS:
       switchspec: in=i
       varname: project_id
     - &opt-proto
-      switchspec: proto=s
+      switchspec: proto|like=s
       varname: prototype
       description: |-2
                 Specify an existing prototype in the creation of a new
@@ -501,8 +504,17 @@ Nodes:
 
           Arguments to the command are treated as search names, and only
           nodes whose names match are included in the output.      
+  - name: console*
+    verb: get console output of,console,cons,cat
+    cardinality: single
+    endpoint: ec2 get-console-output
+    request_type: GET
+    options:
+    - *opt-help
+    cmd_description: |-2
+          Capture the output to the node's console.
   - name: add*
-    verb: add
+    verb: add,create,new,make,clone
     cardinality: single
     endpoint: ec2 run-instances
     require_subject: 1
@@ -511,12 +523,18 @@ Nodes:
     - *opt-proto
     - *opt-type
     - *opt-wait
+    - *opt-count
+    - &opt-image
+      switchspec: image=s
+      varname: image
+      description: |-2
+                Specify an AMI image for the new VM node.
     request_type: POST
   - name: delete*
-    verb: delete
+    verb: delete,terminate,remove
     cardinality: single
     request_type: DELETE
-    endpoint: /usermanagement/1/node
+    endpoint: ec2 terminate-instances --instance-ids
     require_subject: 1
     options:
     - *opt-force
