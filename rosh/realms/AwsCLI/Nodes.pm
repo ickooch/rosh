@@ -119,7 +119,7 @@ sub cmd_lsnod {
   } elsif ( $opt_long ) {
       print join( "\n", map { $_->{ 'InstanceId' } . ': ' . $json->pretty->encode( $_ ) } @results ) . "\n";
   } else {
-      my $norm_format = "%F:InstanceId(20) %n %F:InstanceType %F:State.Name";
+      my $norm_format = "%F:InstanceId(20) %n %F:InstanceType %F:State.Name %F:PublicIpAddress (%F:PublicDnsName)";
       print join( "\n", map { $aws->substitute_format( $norm_format, $_ ) } 
 		  sort { $a->{ 'name' } cmp $b->{ 'name' } } @results ) . "\n"; 
   }
@@ -197,11 +197,13 @@ sub desc_node {
 
   my $aws = $this->preference( 'aws_connector' );
 
+  $nodeinfo->{ 'SGroups' } = join( ', ', map { $_->{ 'GroupName'} } @{ $nodeinfo->{ 'SecurityGroups' } } );
   my $norm_format_running = "Node: %F:InstanceId(20) %n %F:InstanceType %F:State.Name
   DNS (intern): %F:PrivateDnsName
   DNS (public): %F:PublicDnsName
   IP (intern): %F:PrivateIpAddress
   IP (extern): %F:PublicIpAddress
+  Security Groups: %F:SGroups
   Subnet Id: %F:SubnetId
   VPC Id: %F:VpcId
   Image-Id: %F:ImageId
@@ -209,6 +211,7 @@ sub desc_node {
       
   my $norm_format_stopped = "Node: %F:InstanceId(20) %n %F:InstanceType %F:State.Name
   DNS (intern): %F:PrivateDnsName
+  Security Groups: %F:SGroups
   Subnet Id: %F:SubnetId
   VPC Id: %F:VpcId
   Image-Id: %F:ImageId";
@@ -466,10 +469,11 @@ sub cmd_stopnod {
       print 'Called: cmd_startnod ';
       print join(', ', @ARGV ); print "\n";
   }
-  my ( $opt_force, $opt_wait, $opt_help,  );
+  my ( $opt_force, $opt_wait, $opt_all, $opt_help,  );
   GetOptions (
       'force|f' => \$opt_force,
       'wait|w' => \$opt_wait,
+      'all|a' => \$opt_all,
       'help' => \$opt_help,
       );
 

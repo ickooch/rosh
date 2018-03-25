@@ -120,6 +120,7 @@ sub new {
 		    'options' =>  [ qw(
 		                        force|f
 		                        wait|w
+		                        all|a
 		                        help
 				      )
 				  ],
@@ -350,7 +351,7 @@ sub awscli_stopnod_usage
 {
 #    return "** UNIMPLEMENTED **";
 
-    return "stop node --force|f --wait|w --help 
+    return "stop node --force|f --wait|w --all|a --help 
 
 DESCRIPTION:
 
@@ -361,6 +362,16 @@ DESCRIPTION:
         The command keeps polling the state of the resource in intervalls
         until it has reached the desired state, or until it failed.
         
+
+    --all|a
+        Do not restrict output by any kind of built-in filter
+        logic, such as only listing projects that are listed
+        in one of the caller's namespaces.
+
+        Note, that requesting all possible entries may result
+        in extended response times because of Aws's
+        paginating API returns (i.e. there may be many
+        sequential GET requests involved). 
 
     --help
         Print this help, and command usage information.

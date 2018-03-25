@@ -557,6 +557,7 @@ Nodes:
     options:
     - *opt-force
     - *opt-wait
+    - *opt-all
     - *opt-help
   kind: resource
   noun: node
@@ -666,6 +667,36 @@ Roles:
   kind: resource
   noun: role
   suffix: rol
+#
+################################################################################
+#
+SecurityGroup:
+  commands:
+  - name: ls*
+    verb: list,ls
+    canfilter: name
+    cardinality: many
+    request_type: GET
+    endpoint: ec2 describe-security-groups
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-format
+    - *opt-short
+  - name: desc*
+    verb: describe,desc,get
+    cardinality: single
+    request_type: GET
+    require_subject: 1
+    endpoint: ec2 describe-security-groups
+    options:
+    - *opt-help
+    - *opt-long
+    - *opt-format
+    - *opt-short
+  kind: resource
+  noun: sg
+  suffix: secg
 #
 ################################################################################
 #

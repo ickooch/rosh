@@ -255,7 +255,7 @@ sub awscli {
     if ( $this->preference( 'show_curl' ) ) {
       print $cmd . "\n";
     }
-    my $res = `$cmd`;
+    my $res = `$cmd 2>&1`;
 
     my $result;
     if ( $res ) {
