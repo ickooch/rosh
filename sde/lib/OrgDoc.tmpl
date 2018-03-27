@@ -1,0 +1,9 @@
+*** <TMPL_VAR NAME="plugin">
+
+_Action verbs:_
+<TMPL_LOOP NAME="commands">- *<TMPL_VAR NAME="primary-verb">* <TMPL_LOOP NAME='options'>--<TMPL_VAR NAME='switchspec'> </TMPL_LOOP><TMPL_IF NAME="aliases">
+  (aliases: /<TMPL_VAR NAME="aliases">/)</TMPL_IF><TMPL_IF NAME="cmd_description">
+
+<TMPL_VAR NAME="cmd_description">
+</TMPL_IF>
+</TMPL_LOOP>		   
