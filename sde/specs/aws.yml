@@ -74,9 +74,6 @@ DUMMY_FOR_OPTIONS:
     - &opt-branch
       switchspec: branch|b=s
       varname: branch
-    - &opt-count
-      switchspec: count|num|#=i
-      varname: count
     - &opt-desc
       switchspec: desc|d=s
       varname: desc
@@ -331,7 +328,7 @@ DUMMY_FOR_OPTIONS:
       switchspec: in=i
       varname: project_id
     - &opt-proto
-      switchspec: proto|like=s
+      switchspec: proto=s
       varname: prototype
       description: |-2
                 Specify an existing prototype in the creation of a new
@@ -390,20 +387,6 @@ DUMMY_FOR_OPTIONS:
 
                 For example, copy an existing webhook to an existing project
                 with 'copy webhook 842 --to my_project.
-    - &opt-type
-      switchspec: type=s
-      varname: type
-      description: |-2
-                EC2 instance type
-                Supported types are:
-                - t2.micro (default)
-                - t2.{nano,micro,small,medium,large,xlarge,2xlarge}
-                - c4.{large,xlarge,2xlarge,4xlarge,8xlarge}
-                - c5.{large,xlarge,2xlarge,4xlarge,9xlarge,18xlarge}
-                - m4.{large,xlarge,2xlarge,4xlarge,10xlarge,16xlarge}
-                - m5.{large,xlarge,2xlarge,4xlarge,12xlarge,25xlarge}
-                See https://aws.amazon.com/de/ec2/instance-types/ for description
-                of the instance types.
     - &opt-url
       switchspec: url=s
       varname: url
@@ -416,14 +399,6 @@ DUMMY_FOR_OPTIONS:
     - &opt-visibility
       switchspec: visibility=s
       varname: visibility
-    - &opt-wait
-      switchspec: wait|w
-      varname: wait
-      description: |-2
-                Wait for the state change to complete.
-                The command keeps polling the state of the resource in intervalls
-                until it has reached the desired state, or until it failed.
-                
 #
 ################################################################################
 ################################################################################
@@ -446,10 +421,10 @@ Groups:
     - *opt-format
     - *opt-short
     cmd_description: |-2
-          List names, and ids of all groups.
+        List names, and ids of all groups.
 
-          Arguments to the command are treated as search names, and only
-          groups whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        groups whose names match are included in the output.      
   - name: desc*
     verb: describe,desc
     cardinality: single
@@ -461,10 +436,10 @@ Groups:
     - *opt-long
     - *opt-format
     cmd_description: |-2
-          List names, and ids of all nodes.
+        List names, and ids of all nodes.
 
-          Arguments to the command are treated as search names, and only
-          nodes whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        nodes whose names match are included in the output.      
   kind: resource
   noun: group
   suffix: grp
@@ -485,10 +460,10 @@ Nodes:
     - *opt-long
     - *opt-format
     cmd_description: |-2
-          List names, and ids of all ec2 nodes.
+        List names, and ids of all ec2 nodes.
 
-          Arguments to the command are treated as search names, and only
-          nodes whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        nodes whose names match are included in the output.      
   - name: desc*
     verb: describe,desc
     cardinality: single
@@ -500,41 +475,24 @@ Nodes:
     - *opt-long
     - *opt-format
     cmd_description: |-2
-          List names, and ids of all nodes.
+        List names, and ids of all nodes.
 
-          Arguments to the command are treated as search names, and only
-          nodes whose names match are included in the output.      
-  - name: console*
-    verb: get console output of,console,cons,cat
-    cardinality: single
-    endpoint: ec2 get-console-output
-    request_type: GET
-    options:
-    - *opt-help
-    cmd_description: |-2
-          Capture the output to the node's console.
+        Arguments to the command are treated as search names, and only
+        nodes whose names match are included in the output.      
   - name: add*
-    verb: add,create,new,make,clone
+    verb: add
     cardinality: single
     endpoint: ec2 run-instances
     require_subject: 1
     options:
     - *opt-help
-    - *opt-proto
-    - *opt-type
-    - *opt-wait
-    - *opt-count
-    - &opt-image
-      switchspec: image=s
-      varname: image
-      description: |-2
-                Specify an AMI image for the new VM node.
+    - *opt-desc
     request_type: POST
   - name: delete*
-    verb: delete,terminate,remove
+    verb: delete
     cardinality: single
     request_type: DELETE
-    endpoint: ec2 terminate-instances --instance-ids
+    endpoint: /usermanagement/1/node
     require_subject: 1
     options:
     - *opt-force
@@ -546,7 +504,6 @@ Nodes:
     require_subject: 1
     options:
     - *opt-help
-    - *opt-wait
     request_type: POST
   - name: stop*
     verb: stop
@@ -556,8 +513,6 @@ Nodes:
     endpoint: ec2 stop-instance
     options:
     - *opt-force
-    - *opt-wait
-    - *opt-all
     - *opt-help
   kind: resource
   noun: node
@@ -579,10 +534,10 @@ Images:
     - *opt-short
     - *opt-format
     cmd_description: |-2
-          List names, and ids of all ec2 images.
+        List names, and ids of all ec2 images.
 
-          Arguments to the command are treated as search names, and only
-          images whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        images whose names match are included in the output.      
   - name: desc*
     verb: describe,desc
     cardinality: single
@@ -594,10 +549,10 @@ Images:
     - *opt-short
     - *opt-format
     cmd_description: |-2
-          List names, and ids of all images.
+        List names, and ids of all images.
 
-          Arguments to the command are treated as search names, and only
-          images whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        images whose names match are included in the output.      
   - name: add*
     verb: add
     cardinality: single
@@ -636,10 +591,10 @@ Policies:
     - *opt-format
     - *opt-short
     cmd_description: |-2
-          List names, and ids of all policies.
+        List names, and ids of all policies.
 
-          Arguments to the command are treated as search names, and only
-          policies whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        policies whose names match are included in the output.      
   kind: resource
   noun: policy
   suffix: pol
@@ -660,43 +615,13 @@ Roles:
     - *opt-format
     - *opt-short
     cmd_description: |-2
-          List names, and ids of all roles.
+        List names, and ids of all roles.
 
-          Arguments to the command are treated as search names, and only
-          roles whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        roles whose names match are included in the output.      
   kind: resource
   noun: role
   suffix: rol
-#
-################################################################################
-#
-SecurityGroup:
-  commands:
-  - name: ls*
-    verb: list,ls
-    canfilter: name
-    cardinality: many
-    request_type: GET
-    endpoint: ec2 describe-security-groups
-    options:
-    - *opt-help
-    - *opt-long
-    - *opt-format
-    - *opt-short
-  - name: desc*
-    verb: describe,desc,get
-    cardinality: single
-    request_type: GET
-    require_subject: 1
-    endpoint: ec2 describe-security-groups
-    options:
-    - *opt-help
-    - *opt-long
-    - *opt-format
-    - *opt-short
-  kind: resource
-  noun: sg
-  suffix: secg
 #
 ################################################################################
 #

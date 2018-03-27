@@ -410,7 +410,7 @@ Users:
     - *opt-format
     - *opt-short
     cmd_description: |-2
-          List names, and ids of matching user entries.
+        List names, and ids of matching user entries.
   - name: desc*
     verb: describe,desc
     cardinality: single

@@ -426,7 +426,7 @@ Boards:
     - *opt-short
     - *opt-fave
     cmd_description: |-2
-          List names, and ids of all filters owned by or visible to the caller.
+        List names, and ids of all filters owned by or visible to the caller.
   - name: desc*
     verb: describe,desc
     cardinality: single
@@ -489,7 +489,7 @@ Filters:
     - *opt-short
     - *opt-fave
     cmd_description: |-2
-          List names, and ids of all filters owned by or visible to the caller.
+        List names, and ids of all filters owned by or visible to the caller.
   - name: desc*
     verb: describe,desc
     cardinality: single
@@ -552,10 +552,10 @@ Groups:
     - *opt-long
     - *opt-short
     cmd_description: |-2
-          List names, and ids of all groups owned by or visible to the caller.
+        List names, and ids of all groups owned by or visible to the caller.
 
-          Arguments to the command are treated as search names, and only
-          groups whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        groups whose names match are included in the output.      
   - name: ls*_members
     verb: describe,list members of,list members in,list users in
     cardinality: many
@@ -565,9 +565,9 @@ Groups:
     - *opt-help
     - *opt-long
     - *opt-short
-    cmd_description: |-
-      List names, and ids of all subgroups contained in the group
-      passed as argument.
+    cmd_description: |-2
+        List names, and ids of all subgroups contained in the group
+        passed as argument.
     require_subject: 1
   - name: add*_members
     verb: add member to,add user to
@@ -649,10 +649,10 @@ Issues:
     - *opt-filter
     - *opt-all
     cmd_description: |-2
-          List active issues in the specified project, or according to one of the
-          selection options.
-          By default, only active issues are returned. Option --all can be set to
-          include closed, and resolved issues in the output, too.
+        List active issues in the specified project, or according to one of the
+        selection options.
+        By default, only active issues are returned. Option --all can be set to
+        include closed, and resolved issues in the output, too.
   - name: lsmy*
     verb: list my,ls my
     cardinality: many
@@ -668,9 +668,9 @@ Issues:
     - *opt-all
     - *opt-in
     cmd_description: |-2
-          List issues assigned to, or reported by the current user. By default
-          the current user is the user used to connect to Jira. The concept of
-          current user can be modified with the option --user <userid>.
+        List issues assigned to, or reported by the current user. By default
+        the current user is the user used to connect to Jira. The concept of
+        current user can be modified with the option --user <userid>.
   - name: desc*
     verb: describe,desc,cat
     cardinality: single
@@ -788,11 +788,11 @@ Projects:
     - *opt-short
     - *opt-format
     cmd_description: |-2
-          List names, and ids of all projects listed in a group or
-          subgroup (namespace) owned by or visible to the caller.
+        List names, and ids of all projects listed in a group or
+        subgroup (namespace) owned by or visible to the caller.
 
-          Arguments to the command are treated as search names, and only
-          projects whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        projects whose names match are included in the output.      
   - name: desc*
     verb: describe,desc
     cardinality: single
@@ -894,7 +894,7 @@ Status:
     - *opt-short
     - *opt-format
     cmd_description: |-2
-          List names, categories and ids of all issue statuses.
+        List names, categories and ids of all issue statuses.
   - name: desc*
     verb: describe,desc
     cardinality: single
@@ -944,12 +944,12 @@ Users:
     endpoint: /user
     require_subject: 1
     cmd_description: |-2
-          The command modifies one or more users by prototype,
-          i.e. all relevant, non-idividual attributes of the prototype
-          user, specified as argument to the --prot option, are
-          applied to the specified user entries. In particular, the
-          users are added and removed to/from groups so they match the
-          prototype user.
+        The command modifies one or more users by prototype,
+        i.e. all relevant, non-idividual attributes of the prototype
+        user, specified as argument to the --prot option, are
+        applied to the specified user entries. In particular, the
+        users are added and removed to/from groups so they match the
+        prototype user.
     options:
     - *opt-help
     - *opt-proto
@@ -966,10 +966,10 @@ Users:
     endpoint: /group/user?groupname=
     require_subject: 1
     cmd_description: |-2
-          The specified users are not really deleted from the
-          applicable user directory, but rather removed from all
-          groups. This will remove application access from the users,
-          and free up the tool licenses. 
+        The specified users are not really deleted from the
+        applicable user directory, but rather removed from all
+        groups. This will remove application access from the users,
+        and free up the tool licenses. 
     options:
     - *opt-help
     - *opt-force

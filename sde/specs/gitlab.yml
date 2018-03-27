@@ -412,10 +412,10 @@ Artifacts:
     - *opt-long
     - *opt-in    
     cmd_description: |-2
-          List artifacts generated for the indicated job.
+        List artifacts generated for the indicated job.
 
-          An argument to the list command is treated as a filter expression
-          that will be matched against the set of all job artifacts.
+        An argument to the list command is treated as a filter expression
+        that will be matched against the set of all job artifacts.
   - name: get*
     verb: get
     cardinality: single
@@ -428,10 +428,10 @@ Artifacts:
     - *opt-long
     - *opt-in    
     cmd_description: |-2
-          Get the artifacts (zip-)file for the given job. If a name is
-          provided that matches one or more artifact, only the
-          matching artifacts are retrieved and placed in the current
-          directory. 
+        Get the artifacts (zip-)file for the given job. If a name is
+        provided that matches one or more artifact, only the
+        matching artifacts are retrieved and placed in the current
+        directory. 
   kind: resource
   noun: artifact
   suffix: atf
@@ -453,7 +453,7 @@ Boards:
     - *opt-in
     - *opt-format
     cmd_description: |-2
-          List names, and ids of all filters owned by or visible to the caller.
+        List names, and ids of all filters owned by or visible to the caller.
   - name: desc*
     verb: describe,desc
     cardinality: single
@@ -519,10 +519,10 @@ Branches:
     - *opt-all
     - *opt-in    
     cmd_description: |-2
-          List names, and ids of branches in specified (current) repository.
+        List names, and ids of branches in specified (current) repository.
 
-          An argument to the list command is treated as a filter expression
-          that will be matched against the set of all branches.
+        An argument to the list command is treated as a filter expression
+        that will be matched against the set of all branches.
   - name: desc*
     verb: describe,desc
     cardinality: single
@@ -535,8 +535,8 @@ Branches:
     - *opt-short
     - *opt-format
     - *opt-in    
-    cmd_description: |-
-      Output details of the current project's branch which is given as argument.
+    cmd_description: |-2
+        Output details of the current project's branch which is given as argument.
   - name: prot*
     verb: protect
     cardinality: single
@@ -568,14 +568,14 @@ Branches:
     - *opt-in
     - *opt-for
     - *opt-ref
-    cmd_description: |-
-      Create a branch in the specified (or current) project.
-      The branch is forked off from the specified branch, label or
-      commit specified as argument to --ref. If no branching point
-      is specified, the branch forks of master.
+    cmd_description: |-2
+        Create a branch in the specified (or current) project.
+        The branch is forked off from the specified branch, label or
+        commit specified as argument to --ref. If no branching point
+        is specified, the branch forks of master.
       
-      The name of the branch must be specified as argument to the
-      command.
+        The name of the branch must be specified as argument to the
+        command.
   - name: del*
     verb: remove,delete,rm,del
     cardinality: single
@@ -586,11 +586,11 @@ Branches:
     - *opt-force
     - *opt-help
     - *opt-in
-    cmd_description: |-
-      Delete a branch in the specified (or current) project.
+    cmd_description: |-2
+        Delete a branch in the specified (or current) project.
       
-      The name of the branch must be specified as argument to the
-      command.
+        The name of the branch must be specified as argument to the
+        command.
   - name: delmrg*
     verb: delete merged
     cardinality: single
@@ -600,11 +600,11 @@ Branches:
     - *opt-force
     - *opt-help
     - *opt-in
-    cmd_description: |-
-      Delete all branches that are merged into the  specified (or current)
-      project's default branch.
+    cmd_description: |-2
+        Delete all branches that are merged into the  specified (or current)
+        project's default branch.
       
-      Protected branches will not be deleted as part of this operation.
+        Protected branches will not be deleted as part of this operation.
   kind: resource
   noun: branch
   suffix: br
@@ -670,10 +670,10 @@ Commits:
                 Only commits before or on this date will be listed in ISO 8601 format
                 YYYY-MM-DDTHH:MM:SSZ
     cmd_description: |-2
-          List commits in specified repositories.
+        List commits in specified repositories.
 
-          An argument to the list command is treated as a filter expression
-          that will be matched against the title of all commits.
+        An argument to the list command is treated as a filter expression
+        that will be matched against the title of all commits.
   - name: desc*
     verb: describe
     cardinality: single
@@ -686,8 +686,8 @@ Commits:
     - *opt-short
     - *opt-format
     - *opt-in    
-    cmd_description: |-
-      Output details of the current project's commit which is given as argument.
+    cmd_description: |-2
+        Output details of the current project's commit which is given as argument.
   - name: diff*
     verb: diff|compare|comp
     cardinality: single
@@ -712,8 +712,8 @@ Commits:
                     - R - select file renames
                 Any combination of filter keys is possible.
                 If no filter is specified, all differences will be listed.
-    cmd_description: |-
-      Print an overview of the differences between the two commits --from and --to.
+    cmd_description: |-2
+        Print an overview of the differences between the two commits --from and --to.
   kind: resource
   noun: commit
   suffix: cmit
@@ -747,7 +747,7 @@ Environments:
     - *opt-in
   - name: add*
     cmd_description: |-2
-          Create a new deployment environment.
+        Create a new deployment environment.
     verb: add,create
     require_subject: 1
     cardinality: single
@@ -759,7 +759,7 @@ Environments:
     - *opt-url
   - name: stop*
     cmd_description: |-2
-          Stop the specified environment.
+        Stop the specified environment.
     verb: stop
     require_subject: 1
     cardinality: single
@@ -775,7 +775,7 @@ Environments:
     request_type: DELETE
     endpoint: /projects/:project-id/environments/:id
     cmd_description: |-2
-          Delete the environment.
+        Delete the environment.
     options:
     - *opt-force
     - *opt-help
@@ -813,10 +813,10 @@ Files:
     - *opt-ref
     - *opt-branch
     cmd_description: |-2
-          List the files in a project's repository.
+        List the files in a project's repository.
 
-          Arguments to the command are treated as search names, and only
-          files whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        files whose names match are included in the output.      
   - name: desc*
     verb: describe
     cardinality: single
@@ -832,7 +832,7 @@ Files:
     - *opt-ref
     - *opt-branch
     cmd_description: |-2
-      Output all relevant details of the file given as argument.
+        Output all relevant details of the file given as argument.
   - name: cat*
     verb: cat
     cardinality: single
@@ -845,7 +845,7 @@ Files:
     - *opt-ref
     - *opt-branch
     cmd_description: |-2
-      Output the contents of the file.
+        Output the contents of the file.
     request_type: GET
   - name: diff*
     verb: diff|compare|comp
@@ -859,8 +859,8 @@ Files:
     - *opt-from
     - *opt-to
     - *opt-in    
-    cmd_description: |-
-      Print the differences between the two commits --from and --to in specified file.
+    cmd_description: |-2
+        Print the differences between the two commits --from and --to in specified file.
   kind: resource
   noun: file
   suffix: fil
@@ -880,10 +880,10 @@ Groups:
     - *opt-long
     - *opt-short
     cmd_description: |-2
-          List names, and ids of all groups owned by or visible to the caller.
+        List names, and ids of all groups owned by or visible to the caller.
 
-          Arguments to the command are treated as search names, and only
-          groups whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        groups whose names match are included in the output.      
   - name: ls*_projects
     verb: list projects in,ls projects in
     cardinality: many
@@ -893,9 +893,9 @@ Groups:
     - *opt-help
     - *opt-long
     - *opt-short
-    cmd_description: |-
-      List names, and ids of all projects contained in the group or
-      subgroup passed as argument.
+    cmd_description: |-2
+        List names, and ids of all projects contained in the group or
+        subgroup passed as argument.
     require_subject: 1
   - name: ls*_members
     verb: list members of,list members in,list users in,ls members of
@@ -906,9 +906,9 @@ Groups:
     - *opt-help
     - *opt-long
     - *opt-short
-    cmd_description: |-
-      List names, and ids of all subgroups contained in the group
-      passed as argument.
+    cmd_description: |-2
+        List names, and ids of all subgroups contained in the group
+        passed as argument.
     require_subject: 1
   - name: add*_members
     verb: add member to,add user to
@@ -939,8 +939,8 @@ Groups:
     - *opt-short
     - *opt-format
     - *opt-json
-    cmd_description: |-
-      Output all relevant details of the group given as argument.
+    cmd_description: |-2
+        Output all relevant details of the group given as argument.
   - name: add*
     verb: add,new,create
     cardinality: single
@@ -1009,10 +1009,10 @@ Issues:
     - *opt-filter
     - *opt-all
     cmd_description: |-2
-          List active issues in the specified project, or according to one of the
-          selection options.
-          By default, only active issues are returned. Option --all can be set to
-          include closed, and resolved issues in the output, too.
+        List active issues in the specified project, or according to one of the
+        selection options.
+        By default, only active issues are returned. Option --all can be set to
+        include closed, and resolved issues in the output, too.
   - name: lsmy*
     verb: list my,ls my
     cardinality: many
@@ -1029,9 +1029,9 @@ Issues:
     - *opt-filter
     - *opt-in
     cmd_description: |-2
-          List issues assigned to, or reported by the current user. By default
-          the current user is the user used to connect to Jira. The concept of
-          current user can be modified with the option --user <userid>.
+        List issues assigned to, or reported by the current user. By default
+        the current user is the user used to connect to Jira. The concept of
+        current user can be modified with the option --user <userid>.
   - name: lstmp*
     verb: list templates for,ls templ
     cardinality: many
@@ -1044,8 +1044,8 @@ Issues:
     - *opt-short
     - *opt-in
     cmd_description: |-2
-          List issue templates for the current project. The templates are markdown
-          files stored in the .gitlab/issue_templates/ directory.
+        List issue templates for the current project. The templates are markdown
+        files stored in the .gitlab/issue_templates/ directory.
   - name: desc*
     verb: describe,desc,cat
     cardinality: single
@@ -1090,11 +1090,11 @@ Issues:
     - *opt-force
     - *opt-help
     - *opt-in
-    cmd_description: |-
-      Delete an issue in the specified (or current) project.
+    cmd_description: |-2
+        Delete an issue in the specified (or current) project.
       
-      The instance id of the issue must be specified as argument to the
-      command.
+        The instance id of the issue must be specified as argument to the
+        command.
   - name: asg*
     verb: assign
     cardinality: single
@@ -1306,8 +1306,8 @@ Labels:
     - *opt-short
     - *opt-format
     - *opt-in    
-    cmd_description: |-
-      Output details of the current project's branch which is given as argument.
+    cmd_description: |-2
+        Output details of the current project's branch which is given as argument.
   - name: mk*
     verb: add,create,new,mk
     cardinality: single
@@ -1324,11 +1324,11 @@ Labels:
       description: |-2
                 The color of the label given in 6-digit hex notation with leading '#'
                 sign (e.g. #FFAABB) or one of the CSS color names
-    cmd_description: |-
-      Create a label in the specified (or current) project.
+    cmd_description: |-2
+        Create a label in the specified (or current) project.
       
-      The name of the label must be specified as argument to the
-      command.
+        The name of the label must be specified as argument to the
+        command.
   - name: del*
     verb: remove,delete,del,rm
     cardinality: single
@@ -1339,11 +1339,11 @@ Labels:
     - *opt-force
     - *opt-help
     - *opt-in
-    cmd_description: |-
-      Delete a branch in the specified (or current) project.
+    cmd_description: |-2
+        Delete a branch in the specified (or current) project.
       
-      The name of the branch must be specified as argument to the
-      command.
+        The name of the branch must be specified as argument to the
+        command.
   kind: resource
   noun: label
   suffix: lbl
@@ -1603,11 +1603,11 @@ Projects:
     - *opt-recursive
     - *opt-format
     cmd_description: |-2
-          List names, and ids of all projects listed in a group or
-          subgroup (namespace) owned by or visible to the caller.
+        List names, and ids of all projects listed in a group or
+        subgroup (namespace) owned by or visible to the caller.
 
-          Arguments to the command are treated as search names, and only
-          projects whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        projects whose names match are included in the output.      
   - name: ls*_members
     verb: list members of
     cardinality: many
@@ -2016,7 +2016,7 @@ Variables:
     - *opt-in
   - name: add*
     cmd_description: |-2
-          Create a new build variable.
+        Create a new build variable.
     verb: add,create
     require_subject: 1
     cardinality: single
@@ -2097,26 +2097,26 @@ WebHook:
     - *opt-short
   - name: add*
     cmd_description: |-2
-          Create a project hook (also referred to as webhook) for the
-          project or projects referenced by the context specified by
-          the --to option. The referenced context is usually a
-          projecst or a list of projects. It is also possible to specify a
-          group or subgroup, in which case the webhook is created for
-          all projects in the respective group (see also option
-          --recursive). 
-          
-          The option /--url '<url string>'/ defines URL endpoint of a
-          webseservice that is called whenever one of the events
-          specified with the  option --events occurs.
-          
-          The switch '--token <string>' is used to define a secret
-          token to validate received payloads.
-          
-          If the option /--recursive/ is set the argument to the --to
-          option is taken as a group (possibly containing subgroups)
-          in which projects are organized. In this case the webhook is
-          added to all projects that are contained in the transitive
-          closure of the group given in the --to option.
+        Create a project hook (also referred to as webhook) for the
+        project or projects referenced by the context specified by
+        the --to option. The referenced context is usually a
+        projecst or a list of projects. It is also possible to specify a
+        group or subgroup, in which case the webhook is created for
+        all projects in the respective group (see also option
+        --recursive). 
+       
+        The option /--url '<url string>'/ defines URL endpoint of a
+        webseservice that is called whenever one of the events
+        specified with the  option --events occurs.
+       
+        The switch '--token <string>' is used to define a secret
+        token to validate received payloads.
+       
+        If the option /--recursive/ is set the argument to the --to
+        option is taken as a group (possibly containing subgroups)
+        in which projects are organized. In this case the webhook is
+        added to all projects that are contained in the transitive
+        closure of the group given in the --to option.
     verb: add
     require_subject: 1
     cardinality: single

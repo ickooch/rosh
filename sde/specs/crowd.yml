@@ -418,10 +418,10 @@ Groups:
     options:
     - *opt-help
     cmd_description: |-2
-          List names, and ids of all groups.
+        List names, and ids of all groups.
 
-          Arguments to the command are treated as search names, and only
-          groups whose names match are included in the output.      
+        Arguments to the command are treated as search names, and only
+        groups whose names match are included in the output.      
   - name: ls*_members
     verb: describe,desc,list members of,list members in,list users in
     cardinality: many
@@ -431,9 +431,9 @@ Groups:
     - *opt-help
     - *opt-long
     - *opt-short
-    cmd_description: |-
-      List names, and ids of all subgroups contained in the group
-      passed as argument.
+    cmd_description: |-2
+        List names, and ids of all subgroups contained in the group
+        passed as argument.
     require_subject: 1
   - name: add*_members
     verb: add member to,add user to
@@ -515,12 +515,12 @@ Users:
     endpoint: /user
     require_subject: 1
     cmd_description: |-2
-          The command modifies one or more users by prototype,
-          i.e. all relevant, non-idividual attributes of the prototype
-          user, specified as argument to the --prot option, are
-          applied to the specified user entries. In particular, the
-          users are added and removed to/from groups so they match the
-          prototype user.
+        The command modifies one or more users by prototype,
+        i.e. all relevant, non-idividual attributes of the prototype
+        user, specified as argument to the --prot option, are
+        applied to the specified user entries. In particular, the
+        users are added and removed to/from groups so they match the
+        prototype user.
     options:
     - *opt-help
     - *opt-proto
@@ -555,10 +555,10 @@ Users:
     endpoint: /usermanagement/1/user
     require_subject: 1
     cmd_description: |-2
-          The specified users are not really deleted from the
-          applicable user directory, but rather removed from all
-          groups. This will remove application access from the users,
-          and free up the tool licenses. 
+        The specified users are not really deleted from the
+        applicable user directory, but rather removed from all
+        groups. This will remove application access from the users,
+        and free up the tool licenses. 
     options:
     - *opt-help
     - *opt-force

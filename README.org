@@ -101,12 +101,12 @@ is loaded, it adds its specific /nouns/, and applicable /verbs/ to the
 current vocabulary of the *rosh* session.
 
 Currently, there are application modules for:
-- gitlab,
-- jira,
-- crowd,
-- ldap (active directory), 
-- artifactory, and
-- aws.
+- [[GitLab][gitlab]],
+- [[Jira][jira]],
+- [[Crowd][crowd]],
+- [[Ldap][ldap]] (active directory), 
+- [[JFrog Artifactory][artifactory]], and
+- [[Aws][aws]].
 
 The *rosh* core works independently from any application module, and
 can be extended by any number of application specific adaptor modules.
@@ -484,6 +484,25 @@ approach was easily extended to other applications I had to manage as
 well, namely Jira, and JFrog Artifactory, resulting in a single CLI
 environment for all the applications I had to manage.
 
+As pointed out above, when a realm plugin is loaded into the *rosh*
+command shell, it extends the /vocabulary/ of the command language by
+/nouns/ (the resource objects), and /verbs/ that eventually take the
+nouns as subjects. The set of nouns and verbs that are currently known
+to *rosh* can be examined by giving the commands 
+
+=rosh> nouns= 
+
+or 
+
+=rosh> verbs=
+
+respectively.
+
+In order to view a summary of the command verbs applicable to a
+known noun, specify the command
+
+=rosh> noun _some_noun_=
+
 *CAVEAT:* all of the applications described in the next few
 sections have a rich, and deep REST (or other) API. The current state
 of the *rosh* realm plugins is far from complete, and covers only
@@ -494,57 +513,1032 @@ community of *rosh* CLI users, so that more, and more complete realm
 implementations will eventually result.
 
 ** GitLab
+The *GitLab* realm commands work against the [[https://docs.gitlab.com/ee/api/README.html][GitLab REST API]]. The
+/nouns/ correspond to the /Resource/ classes defined by GitLab's API. 
 
-*** Artifacts
-*** Boards
-*** Branches
-*** CIYML
-*** Commits
-*** Environments
-*** Files
-*** Groups
-*** Issues
-*** Jobs
-*** Labels
-*** Mergerequests
-*** Namespaces
-*** Pipelines
-*** Projects
-*** Runners
-*** Requests
-*** Snippets
-*** Tags
-*** Users
-*** Variables
-*** WebHook
+The exact API call sent by *rosh* to the web endpoint can be obtained
+by setting the *show_curl* variable to /1/ in *rosh* ("=set show_curl = 1=").
 
+*** Authentication
+The GitLab /access_token/ specified in the =$HOME/.rosh_preferences=
+file can be obtained through the GitLab web interface under the
+*Settings* / *Access Tokens* section (left panel) in the User profile.
+
+*** Nouns
+**** Artifacts
+
+_Action verbs:_
+- *get* --help --job /<string>/ --long|l --in /<string>/ 
+
+  Get the artifacts (zip-)file for the given job. If a name is
+  provided that matches one or more artifact, only the
+  matching artifacts are retrieved and placed in the current
+  directory. 
+
+- *list* --help --job /<string>/ --ref /<string>/ --long|l --in /<string>/ 
+
+  List artifacts generated for the indicated job.
+
+  An argument to the list command is treated as a filter expression
+  that will be matched against the set of all job artifacts.
+
+		   
+**** Boards
+
+_Action verbs:_
+- *add* --help --name|n /<string>/ --in /<string>/ --desc|d /<string>/ 
+- *delete* --force|f --in /<string>/ --help 
+- *describe* --help --long|l --short|s --in /<string>/ --format|fmt /<string>/ 
+  (aliases: /desc/)
+- *edit* --help --name|n /<string>/ --in /<string>/ --desc|d /<string>/ 
+- *ls* --help --long|l --short|s --in /<string>/ --format|fmt /<string>/ 
+  (aliases: /list, show/)
+
+  List names, and ids of all filters owned by or visible to the caller.
+
+		   
+**** Branches
+
+_Action verbs:_
+- *add* --help --in /<string>/ --for /<string>/ --ref /<string>/ 
+  (aliases: /create, new/)
+
+  Create a branch in the specified (or current) project.
+  The branch is forked off from the specified branch, label or
+  commit specified as argument to --ref. If no branching point
+  is specified, the branch forks of master.
+
+  The name of the branch must be specified as argument to the
+  command.
+
+- *delete merged* --force|f --help --in /<string>/ 
+
+  Delete all branches that are merged into the  specified (or current)
+  project's default branch.
+
+  Protected branches will not be deleted as part of this operation.
+
+- *describe* --help --long|l --short|s --format|fmt /<string>/ --in /<string>/ 
+  (aliases: /desc/)
+
+  Output details of the current project's branch which is given as argument.
+
+- *list* --help --long|l --short|s --format|fmt /<string>/ --limit|max=i --all|a --in /<string>/ 
+  (aliases: /ls/)
+
+  List names, and ids of branches in specified (current) repository.
+
+  An argument to the list command is treated as a filter expression
+  that will be matched against the set of all branches.
+
+- *protect* --help --in /<string>/ --allow-push --allow-merge 
+- *remove* --force|f --help --in /<string>/ 
+  (aliases: /delete, rm, del/)
+
+  Delete a branch in the specified (or current) project.
+
+  The name of the branch must be specified as argument to the
+  command.
+
+- *unprotect* --help --in /<string>/ 
+		   
+**** CIYML
+
+_Action verbs:_
+- *describe* --help 
+- *get* --help 
+- *list* --help 
+		   
+**** Commits
+
+_Action verbs:_
+- *describe* --help --long|l --short|s --format|fmt /<string>/ --in /<string>/ 
+
+  Output details of the current project's commit which is given as argument.
+
+- *diff|compare|comp* --help --long|l --short|s --from /<string>/ --to /<string>/ --in /<string>/ --filter /<string>/ 
+
+  Print an overview of the differences between the two commits --from and --to.
+
+- *list* --help --long|l --short|s --format|fmt /<string>/ --limit|max=i --in /<string>/ --branch|b /<string>/ --ref /<string>/ --since /<string>/ --until /<string>/ 
+
+  List commits in specified repositories.
+
+  An argument to the list command is treated as a filter expression
+  that will be matched against the title of all commits.
+
+		   
+**** Environments
+
+_Action verbs:_
+- *add* --help --in /<string>/ --url /<string>/ 
+  (aliases: /create/)
+
+  Create a new deployment environment.
+
+- *describe* --help --long|l --short|s --in /<string>/ 
+- *edit* --help --in /<string>/ --url /<string>/ 
+  (aliases: /update/)
+- *list* --help --long|l --short|s --format|fmt /<string>/ --in /<string>/ 
+- *remove* --force|f --help --in /<string>/ 
+  (aliases: /delete/)
+
+  Delete the environment.
+
+- *stop* --help --in /<string>/ 
+
+  Stop the specified environment.
+
+		   
+**** Files
+
+_Action verbs:_
+- *cat* --help --file|f --in /<string>/ --ref /<string>/ --branch|b /<string>/ 
+
+  Output the contents of the file.
+
+- *describe* --help --long|l --short|s --format|fmt /<string>/ --in /<string>/ --ref /<string>/ --branch|b /<string>/ 
+
+  Output all relevant details of the file given as argument.
+
+- *diff|compare|comp* --help --long|l --from /<string>/ --to /<string>/ --in /<string>/ 
+
+  Print the differences between the two commits --from and --to in specified file.
+
+- *list* --help --long|l --short|s --format|fmt /<string>/ --in /<string>/ --recursive|r --ref /<string>/ --branch|b /<string>/ 
+
+  List the files in a project's repository.
+
+  Arguments to the command are treated as search names, and only
+  files whose names match are included in the output.      
+
+		   
+**** Groups
+
+_Action verbs:_
+- *add member to* --help --as /<string>/ 
+  (aliases: /add user to/)
+- *add* --help --path /<string>/ --proto /<string>/ --in /<string>/ --desc|d /<string>/ --visibility /<string>/ 
+  (aliases: /new, create/)
+- *delete* --force|f --recursive|r --help 
+  (aliases: /del, remove, rm/)
+- *describe* --help --long|l --short|s --format|fmt /<string>/ --json 
+  (aliases: /desc/)
+
+  Output all relevant details of the group given as argument.
+
+- *edit* --help --group /<string>/ --name|n /<string>/ --path /<string>/ --in /<string>/ --enable /<string>/ --disable /<string>/ --desc|d /<string>/ --visibility /<string>/ 
+  (aliases: /update, change/)
+- *list members of* --help --long|l --short|s 
+  (aliases: /list members in, list users in, ls members of/)
+
+  List names, and ids of all subgroups contained in the group
+  passed as argument.
+
+- *list projects in* --help --long|l --short|s 
+  (aliases: /ls projects in/)
+
+  List names, and ids of all projects contained in the group or
+  subgroup passed as argument.
+
+- *list* --help --long|l --short|s 
+  (aliases: /ls/)
+
+  List names, and ids of all groups owned by or visible to the caller.
+
+  Arguments to the command are treated as search names, and only
+  groups whose names match are included in the output.      
+
+- *remove member from* --help 
+  (aliases: /remove user from, rm member from/)
+		   
+**** Issues
+
+_Action verbs:_
+- *assign* --help --to /<string>/ --comment|c /<string>/ --in /<string>/ 
+- *comment* --help --in /<string>/ --comment|c /<string>/ 
+- *create branch for* --help --for /<string>/ --in /<string>/ 
+  (aliases: /add branch for/)
+- *describe* --help --long|l --short|s --format|fmt /<string>/ --in /<string>/ --with /<string>/ 
+  (aliases: /desc, cat/)
+- *list my* --help --long|l --short|s --userid=i --format|fmt /<string>/ --all|a --filter /<string>/ --in /<string>/ 
+  (aliases: /ls my/)
+
+  List issues assigned to, or reported by the current user. By default
+  the current user is the user used to connect to Jira. The concept of
+  current user can be modified with the option --user <userid>.
+
+- *list templates for* --help --long|l --short|s --in /<string>/ 
+  (aliases: /ls templ/)
+
+  List issue templates for the current project. The templates are markdown
+  files stored in the .gitlab/issue_templates/ directory.
+
+- *list* --help --long|l --short|s --format|fmt /<string>/ --limit|max=i --in /<string>/ --on|on-board|board /<string>/ --filter /<string>/ --all|a 
+  (aliases: /ls/)
+
+  List active issues in the specified project, or according to one of the
+  selection options.
+  By default, only active issues are returned. Option --all can be set to
+  include closed, and resolved issues in the output, too.
+
+- *new* --help --in /<string>/ --labels|type /<string>/ --title /<string>/ --desc|d /<string>/ --assign-to /<string>/ --milestone /<string>/ 
+  (aliases: /add, create/)
+- *remove* --force|f --help --in /<string>/ 
+  (aliases: /delete, rm, del/)
+
+  Delete an issue in the specified (or current) project.
+
+  The instance id of the issue must be specified as argument to the
+  command.
+
+- *transition* --help --from /<string>/ --to /<string>/ --no-comment|nc --in /<string>/ --comment|c /<string>/ 
+  (aliases: /trans, move, advance, adv, push, close, reopen/)
+- *unwatch* --help --in /<string>/ 
+  (aliases: /unsubscribe, unsub/)
+- *watch* --help --in /<string>/ 
+  (aliases: /subscribe, sub/)
+		   
+**** Jobs
+
+_Action verbs:_
+- *cancel* --help --in /<string>/ 
+- *delete* --help --force|f --in /<string>/ 
+  (aliases: /erase, remove/)
+- *describe* --help --long|l --short|s --format|fmt /<string>/ --in /<string>/ 
+- *download artifacts of* --help --in /<string>/ --ref /<string>/ --file|f 
+- *get* --help --in /<string>/ --file|f 
+- *get artifacts from* --help --in /<string>/ 
+- *list* --help --in /<string>/ --all|a --long|l --limit|max=i --short|s --format|fmt /<string>/ --branch|b /<string>/ 
+- *list all* --help --long|l --limit|max=i --short|s --format|fmt /<string>/ --in /<string>/ --branch|b /<string>/ 
+- *play* --help --in /<string>/ 
+  (aliases: /trigger, start/)
+- *retry* --help --in /<string>/ 
+		   
+**** Labels
+
+_Action verbs:_
+- *add* --help --in /<string>/ --desc|d /<string>/ --color|col /<string>/ 
+  (aliases: /create, new, mk/)
+
+  Create a label in the specified (or current) project.
+
+  The name of the label must be specified as argument to the
+  command.
+
+- *describe* --help --long|l --short|s --format|fmt /<string>/ --in /<string>/ 
+  (aliases: /desc, get/)
+
+  Output details of the current project's branch which is given as argument.
+
+- *list* --help --long|l --limit|max=i --short|s --format|fmt /<string>/ --in /<string>/ 
+  (aliases: /ls/)
+- *remove* --force|f --help --in /<string>/ 
+  (aliases: /delete, del, rm/)
+
+  Delete a branch in the specified (or current) project.
+
+  The name of the branch must be specified as argument to the
+  command.
+
+		   
+**** Mergerequests
+
+_Action verbs:_
+- *add* --help --in /<string>/ --from /<string>/ --to /<string>/ --title /<string>/ --desc|d /<string>/ --rm-source-branch|delete-branch --assign-to /<string>/ --labels|type /<string>/ --squash --milestone /<string>/ 
+  (aliases: /create/)
+- *approve* --help --sha /<string>/ --in /<string>/ 
+- *cancel* --help --in /<string>/ 
+  (aliases: /abort/)
+- *comment* --help --in /<string>/ --comment|c /<string>/ 
+- *delete* --help --force|f --in /<string>/ 
+  (aliases: /erase, remove/)
+- *describe* --help --long|l --short|s --format|fmt /<string>/ --with /<string>/ --in /<string>/ 
+  (aliases: /desc/)
+- *do* --help --in /<string>/ --sha /<string>/ --message|msg /<string>/ --rm-source-branch|delete-branch 
+  (aliases: /accept, merge, exec, execute/)
+- *edit* --help --in /<string>/ --title /<string>/ --desc|d /<string>/ --assign-to /<string>/ --to /<string>/ --rm-source-branch|delete-branch --labels|type /<string>/ --squash --milestone /<string>/ 
+  (aliases: /update/)
+- *get* --help --in /<string>/ --commits --changes --file|f 
+- *list* --help --long|l --labels|type /<string>/ --milestone /<string>/ --limit|max=i --short|s --format|fmt /<string>/ --all|a --in /<string>/ 
+- *list comments to* --help --long|l --limit|max=i --short|s --format|fmt /<string>/ --in /<string>/ 
+  (aliases: /list notes for, list comments, list notes/)
+- *unapprove* --help --in /<string>/ 
+		   
+**** Namespaces
+
+_Action verbs:_
+- *list* --help --long|l --short|s 
+		   
+**** Pipelines
+
+_Action verbs:_
+- *describe* --help --long|l --short|s --format|fmt /<string>/ --in /<string>/ 
+  (aliases: /desc/)
+- *list* --help --long|l --limit|max=i --short|s --format|fmt /<string>/ --in /<string>/ 
+  (aliases: /ls/)
+		   
+**** Projects
+
+_Action verbs:_
+- *add member to* --help --as /<string>/ 
+  (aliases: /add user to/)
+- *create* --help --in /<string>/ --desc|d /<string>/ --visibility /<string>/ --branch|b /<string>/ --enable /<string>/ --url /<string>/ --proto /<string>/ 
+  (aliases: /add, new/)
+- *describe* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /desc/)
+- *list members of* --help --long|l --short|s 
+- *list* --help --long|l --short|s --in /<string>/ --all|a --recursive|r --format|fmt /<string>/ 
+  (aliases: /ls/)
+
+  List names, and ids of all projects listed in a group or
+  subgroup (namespace) owned by or visible to the caller.
+
+  Arguments to the command are treated as search names, and only
+  projects whose names match are included in the output.      
+
+- *move* --help --from /<string>/ --to /<string>/ 
+  (aliases: /rename, mv, ren, transfer, trans/)
+- *remove member from* --help 
+  (aliases: /remove user from/)
+- *remove* --force|f --help 
+  (aliases: /delete/)
+- *update* --help --desc|d /<string>/ --visibility /<string>/ --in /<string>/ --name|n /<string>/ --path /<string>/ --proto /<string>/ --branch|b /<string>/ --enable /<string>/ --disable /<string>/ 
+  (aliases: /edit, change/)
+		   
+**** Requests
+
+_Action verbs:_
+- *approve* --help --in /<string>/ --as /<string>/ 
+  (aliases: /ok/)
+- *deny* --help --in /<string>/ 
+  (aliases: /reject/)
+- *describe* --help --long|l --short|s --format|fmt /<string>/ --projects|P 
+  (aliases: /desc/)
+- *list* --help --long|l --short|s --format|fmt /<string>/ --in /<string>/ 
+  (aliases: /ls/)
+- *new* --help --userid=i --for /<string>/ --in /<string>/ --to /<string>/ 
+  (aliases: /access/)
+		   
+**** Runners
+
+_Action verbs:_
+- *describe* --help --long|l --short|s --format|fmt /<string>/ --projects|P 
+  (aliases: /desc/)
+- *disable* --help --in /<string>/ 
+- *enable* --help --in /<string>/ 
+- *list* --help --long|l --short|s --format|fmt /<string>/ --in /<string>/ 
+- *remove* --help --in /<string>/ 
+  (aliases: /delete/)
+		   
+**** Snippets
+
+_Action verbs:_
+- *create* --help --in /<string>/ --title /<string>/ --file|f --desc|d /<string>/ --visibility /<string>/ --code /<string>/ 
+  (aliases: /add/)
+- *describe* --help --long|l --format|fmt /<string>/ --short|s --in /<string>/ 
+- *get* --help --in /<string>/ --to /<string>/ 
+  (aliases: /cat/)
+- *list* --help --long|l --format|fmt /<string>/ --short|s --in /<string>/ 
+- *remove* --help --force|f --in /<string>/ 
+  (aliases: /delete/)
+- *update* --help --in /<string>/ --title /<string>/ --file|f --desc|d /<string>/ --visibility /<string>/ --code /<string>/ 
+  (aliases: /edit/)
+		   
+**** Tags
+
+_Action verbs:_
+- *list* --help --long|l --limit|max=i --short|s --format|fmt /<string>/ --in /<string>/ 
+		   
+**** Users
+
+_Action verbs:_
+- *add* --help --long|l --to /<string>/ --as /<string>/ 
+- *describe* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /desc/)
+- *list* --help --long|l --format|fmt /<string>/ --short|s --in /<string>/ 
+  (aliases: /ls/)
+- *remove* --help --long|l --from /<string>/ 
+  (aliases: /rm, del, delete/)
+		   
+**** Variables
+
+_Action verbs:_
+- *add* --help --in /<string>/ --value|val /<string>/ --environment|env|scope /<string>/ --protected|prot 
+  (aliases: /create/)
+
+  Create a new build variable.
+
+- *describe* --help --long|l --short|s --in /<string>/ 
+- *edit* --help --in /<string>/ --value|val /<string>/ --environment|env|scope /<string>/ --protected|prot 
+  (aliases: /setenv, update/)
+- *list* --help --long|l --short|s --format|fmt /<string>/ --in /<string>/ 
+- *remove* --force|f --help --in /<string>/ 
+  (aliases: /delete/)
+		   
+**** WebHook
+
+_Action verbs:_
+- *add* --help --url /<string>/ --to /<string>/ --recursive|r --events /<string>/ --token /<string>/ 
+
+  Create a project hook (also referred to as webhook) for the
+  project or projects referenced by the context specified by
+  the --to option. The referenced context is usually a
+  projecst or a list of projects. It is also possible to specify a
+  group or subgroup, in which case the webhook is created for
+  all projects in the respective group (see also option
+  --recursive). 
+ 
+  The option /--url '<url string>'/ defines URL endpoint of a
+  webseservice that is called whenever one of the events
+  specified with the  option --events occurs.
+ 
+  The switch '--token <string>' is used to define a secret
+  token to validate received payloads.
+ 
+  If the option /--recursive/ is set the argument to the --to
+  option is taken as a group (possibly containing subgroups)
+  in which projects are organized. In this case the webhook is
+  added to all projects that are contained in the transitive
+  closure of the group given in the --to option.
+
+- *copy* --help --to /<string>/ 
+
+  Copy the webhooks specified as command arguments to the
+  project (or projects) specified as argument to the --to
+  option.
+
+  This command requires an initialized cache of webhook
+  entries (see command 'list webhooks'). 
+
+- *describe* --help --long|l --short|s 
+- *edit* --help --project|p /<string>/ --in=i --url /<string>/ --events /<string>/ --token /<string>/ 
+- *list* --help --long|l --short|s --url /<string>/ --format|fmt /<string>/ 
+- *remove* --force|f --help --events /<string>/ 
+  (aliases: /delete/)
+		   
 
 ** Jira
+The *Jira* realm commands work against the [[https://developer.atlassian.com/server/jira/platform/][JIRA REST API]]. The /nouns/
+correspond to the /Resource/ classes defined by JIRA's API.
 
-*** Boards
-*** Filters
-*** Groups
-*** Issues
-*** Projects
-*** Status
-*** Users
+The exact API call sent by *rosh* to the web endpoint can be obtained
+by setting the *show_curl* variable to /1/ in *rosh* ("=set show_curl = 1=").
 
+*** Authentication
+The Jira /access_token/ specified in the =$HOME/.rosh_preferences=
+file is composed of the base64-encoded /username/, and the
+user's /password/, separated by a colon (":") (use the supplied
+=encode64.pl= utility, to encode the credentials).
+
+NOTE: the base64 encoded credentials are read by the JIRAConnector
+module supplied to *rosh* as part of the realm plugin
+installation. They are passed to the web service endpoint in the
+*Auth*-Header for Basic-Authentication of web requests to the
+API. Make sure that the connection to JIRA runs via HTTPS, in order to
+keep the credentials secret.
+
+*** Nouns
+**** Boards
+
+_Action verbs:_
+- *add* --help --name|n /<string>/ --jql /<string>/ --desc|d /<string>/ --favorite|fave 
+- *delete* --force|f --help 
+- *describe* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /desc/)
+- *edit* --help --name|n /<string>/ --desc|d /<string>/ --jql /<string>/ --favorite|fave 
+- *ls* --help --long|l --short|s --favorite|fave 
+  (aliases: /list, show/)
+
+  List names, and ids of all filters owned by or visible to the caller.
+
+		   
+**** Filters
+
+_Action verbs:_
+- *add* --help --name|n /<string>/ --proto /<string>/ --jql /<string>/ --desc|d /<string>/ --favorite|fave 
+- *delete* --force|f --help 
+- *describe* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /desc/)
+- *edit* --help --name|n /<string>/ --desc|d /<string>/ --jql /<string>/ --favorite|fave 
+  (aliases: /update/)
+- *list* --help --long|l --short|s --favorite|fave 
+
+  List names, and ids of all filters owned by or visible to the caller.
+
+		   
+**** Groups
+
+_Action verbs:_
+- *add* --help 
+- *add member to* --help 
+  (aliases: /add user to/)
+- *delete* --force|f --help 
+- *describe* --help --long|l --short|s 
+  (aliases: /list members of, list members in, list users in/)
+
+  List names, and ids of all subgroups contained in the group
+  passed as argument.
+
+- *edit* --help --group /<string>/ --name|n /<string>/ --path /<string>/ --in /<string>/ --desc|d /<string>/ --visibility /<string>/ 
+- *list* --help --long|l --short|s 
+
+  List names, and ids of all groups owned by or visible to the caller.
+
+  Arguments to the command are treated as search names, and only
+  groups whose names match are included in the output.      
+
+- *remove member from* --help 
+  (aliases: /remove user from/)
+		   
+**** Issues
+
+_Action verbs:_
+- ** 
+- *assign* --help --to /<string>/ 
+- *attach file to* --help --file|f /<string>/ 
+  (aliases: /att, add attachment to, attach/)
+- *comment* --help --comment|c /<string>/ 
+- *describe* --help --long|l --short|s --format|fmt /<string>/ --with /<string>/ 
+  (aliases: /desc, cat/)
+- *list my* --help --long|l --short|s --userid /<string>/ --format|fmt /<string>/ --all|a --in /<string>/ 
+  (aliases: /ls my/)
+
+  List issues assigned to, or reported by the current user. By default
+  the current user is the user used to connect to Jira. The concept of
+  current user can be modified with the option --user <userid>.
+
+- *list* --help --long|l --short|s --format|fmt /<string>/ --limit|max=i --in /<string>/ --jql /<string>/ --show-jql --on|on-board|board /<string>/ --filter|flt /<string>/ --all|a 
+  (aliases: /ls/)
+
+  List active issues in the specified project, or according to one of the
+  selection options.
+  By default, only active issues are returned. Option --all can be set to
+  include closed, and resolved issues in the output, too.
+
+- *new* --help --labels /<string>/ --title /<string>/ --type|kind /<string>/ --desc|d /<string>/ --in /<string>/ --assign-to /<string>/ 
+  (aliases: /add, create/)
+- *transition* --help --to /<string>/ --no-comment|nc --comment|c /<string>/ 
+  (aliases: /trans, move, mv, advance, adv, push/)
+- *unwatch* --help --userid /<string>/ 
+  (aliases: /unsubscribe, unsub/)
+- *watch* --help --userid /<string>/ 
+  (aliases: /subscribe, sub/)
+		   
+**** Projects
+
+_Action verbs:_
+- *create* --help --key /<string>/ --title /<string>/ --desc|d /<string>/ --notification-scheme|notify /<string>/ --permission-scheme|perm /<string>/ --type /<string>/ --lead /<string>/ --roles /<string>/ --proto /<string>/ 
+  (aliases: /add/)
+- *describe* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /desc/)
+- *list* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /ls/)
+
+  List names, and ids of all projects listed in a group or
+  subgroup (namespace) owned by or visible to the caller.
+
+  Arguments to the command are treated as search names, and only
+  projects whose names match are included in the output.      
+
+- *remove* --force|f --help 
+  (aliases: /delete/)
+- *update* --help --desc|d /<string>/ --visibility /<string>/ --branch|b /<string>/ --enable /<string>/ --disable /<string>/ 
+  (aliases: /edit, change/)
+		   
+**** Status
+
+_Action verbs:_
+- *describe* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /desc/)
+- *list* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /ls/)
+
+  List names, categories and ids of all issue statuses.
+
+		   
+**** Users
+
+_Action verbs:_
+- *describe* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /desc, get/)
+- *list* --help --long|l --format|fmt /<string>/ --short|s --in /<string>/ 
+  (aliases: /ls/)
+- *remove* --help --force|f 
+  (aliases: /delete, rm, del, offboard/)
+
+  The specified users are not really deleted from the
+  applicable user directory, but rather removed from all
+  groups. This will remove application access from the users,
+  and free up the tool licenses. 
+
+- *update* --help --proto /<string>/ --groups /<string>/ 
+  (aliases: /edit, change/)
+
+  The command modifies one or more users by prototype,
+  i.e. all relevant, non-idividual attributes of the prototype
+  user, specified as argument to the --prot option, are
+  applied to the specified user entries. In particular, the
+  users are added and removed to/from groups so they match the
+  prototype user.
+
+		   
+		   
 ** JFrog Artifactory
+The *Artifactory* realm commands work directly against the [[https://www.jfrog.com/confluence/display/RTF/Artifactory+REST+API][JFrogArtifactory
+REST API]]. The /nouns/ correspond to the /Resource/ classes defined by
+the Artifactory API.
 
-*** Builds
-*** Groups
-*** Items
-*** Permissions
-*** Repositories
-*** Users
+The exact API call sent by *rosh* to the web endpoint can be obtained
+by setting the *show_curl* variable to /1/ in *rosh* ("=set show_curl = 1=").
 
+*** Authentication
+The Artifactory /access_token/ specified in the =$HOME/.rosh_preferences=
+file is composed of the base64-encoded /username/, and the
+user's /password/, separated by a colon (':') (use the supplied
+=encode64.pl= utility, to encode the credentials).
+
+NOTE: the base64 encoded credentials are read by the ArtifactoryConnector
+module supplied to *rosh* as part of the realm plugin
+installation. They are passed to the web service endpoint in the
+*Auth*-Header for Basic-Authentication of web requests to the
+API. Make sure that the connection to Artifactory runs via HTTPS, in order to
+keep the credentials secret.
+
+*** Nouns
+
+**** Builds
+
+_Action verbs:_
+- *delete* --force|f --help 
+- *describe* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /desc/)
+- *list* --help --long|l --short|s --favorite|fave 
+
+  List names, and ids of all builds owned by or visible to the caller.
+
+		   
+**** Groups
+
+_Action verbs:_
+- *add* --help 
+- *add member to* --help 
+  (aliases: /add user to/)
+- *delete* --force|f --help 
+- *describe* --help --long|l --short|s 
+  (aliases: /desc/)
+
+  List names, and ids of all subgroups contained in the group
+  passed as argument.
+
+- *edit* --help 
+- *list* --help --long|l --short|s 
+  (aliases: /ls/)
+
+  List names, and ids of all groups owned by or visible to the caller.
+
+  Arguments to the command are treated as search names, and only
+  groups whose names match are included in the output.      
+
+- *remove member from* --help 
+  (aliases: /remove user from/)
+		   
+**** Items
+
+_Action verbs:_
+- *copy* --help 
+  (aliases: /cp/)
+- *describe* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /desc/)
+- *list* --help --long|l --short|s --recursive|rec|R --t --r --format|fmt /<string>/ 
+  (aliases: /ls/)
+
+  List names, and basic information about items stored in a repository
+  or a folder in that repository.
+
+  Arguments to the command are treated as search names, and only
+  items whose names match are included in the output.      
+
+- *mkdir* --help --force|f 
+  (aliases: /mkfolder, addfolder/)
+- *move* --help 
+  (aliases: /mv, rename, ren/)
+- *new* --help --file|f --to /<string>/ --force|f 
+  (aliases: /create, add, upload, deploy/)
+- *remove* --force|f --help --with-content 
+  (aliases: /delete, del, rm/)
+		   
+**** Permissions
+
+_Action verbs:_
+- *apply* --help --to /<string>/ --from /<string>/ 
+  (aliases: /administer, admin, unapply, revoke/)
+- *create* --help --title /<string>/ 
+  (aliases: /add/)
+- *describe* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /desc/)
+- *list* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /ls/)
+
+  Get the permission targets list
+
+- *remove* --force|f --help 
+  (aliases: /delete, del, rm/)
+- *update* --help 
+  (aliases: /edit, replace/)
+		   
+**** Repositories
+
+_Action verbs:_
+- *create* --help --title /<string>/ --desc|d /<string>/ --type /<string>/ --class /<string>/ --proto /<string>/ 
+  (aliases: /add/)
+- *describe* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /desc/)
+- *list* --help --long|l --short|s --all|a --my --recursive|rec|R --class /<string>/ --t --r --format|fmt /<string>/ 
+  (aliases: /ls/)
+
+  List names, and ids of all repositories listed in a group or
+  subgroup (namespace) owned by or visible to the caller.
+
+  Arguments to the command are treated as search names, and only
+  repositories whose names match are included in the output.      
+
+- *remove* --force|f --help --with-content 
+  (aliases: /delete, del, rm/)
+- *update* --help --desc|d /<string>/ --visibility /<string>/ --branch|b /<string>/ --enable /<string>/ --disable /<string>/ 
+  (aliases: /edit/)
+		   
+**** Users
+
+_Action verbs:_
+- *describe* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /desc, get/)
+- *list* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /ls/)
+- *remove* --help --force|f 
+  (aliases: /delete, rm, del, offboard/)
+
+  The specified users are not really deleted from the
+  applicable user directory, but rather removed from all
+  groups. This will remove application access from the users,
+  and free up the tool licenses. 
+
+- *update* --help --proto /<string>/ --groups /<string>/ 
+  (aliases: /edit/)
+
+  The command modifies one or more users by prototype,
+  i.e. all relevant, non-idividual attributes of the prototype
+  user, specified as argument to the --prot option, are
+  applied to the specified user entries. In particular, the
+  users are added and removed to/from groups so they match the
+  prototype user.
+
+		   
+		   
 ** Aws
+The *AWS* realm commands work against a locally installed *aws*
+commandline installation. The installation is [[https://docs.aws.amazon.com/cli/latest/userguide/installing.html][described in the AWS
+documentation]].
+
+The following commands implemement a small subset of the AWS EC2
+related commands. Integration of other subsystem commands is
+straightforward.
+
+Set the *show_curl* variable to /1/ in *rosh* ("=set show_curl = 1=")
+to see the /aws/ calls composed by *rosh*.
+
+*** Authentication
+The aws /access_token/ specified in the =$HOME/.rosh_preferences=
+file is composed of the base64-encoded /aws_access_key_id/, and the
+/aws_secret_access_key/, separated by a comma (use the supplied
+=encode64.pl= utility, to encode the credentials.
+
+AWS credentials are [[https://docs.aws.amazon.com/cli/latest/userguide/installing.html][obtained via the AWS web console]].
+
+NOTE: the base64 encoded credentials are read by the AWSConnector
+module supplied to *rosh* as part of the realm plugin
+installation. They are passed to the local =aws= cli
+installation. Nothing is sent over the network.
+
+*** AWS EC2 related Nouns
+
+**** Groups
+
+_Action verbs:_
+- *describe* --help --short|s --long|l --format|fmt /<string>/ 
+  (aliases: /desc/)
+
+  List names, and ids of all groups.
+
+  Arguments to the command are treated as search names, and only
+  groups whose names match are included in the output.      
+
+- *list* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /ls/)
+
+  List names, and ids of all groups.
+
+  Arguments to the command are treated as search names, and only
+  groups whose names match are included in the output.      
+
+		   
+**** Images
+
+_Action verbs:_
+- *add* --help --desc|d /<string>/ 
+- *delete* --force|f --help 
+- *describe* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /desc/)
+
+  List names, and ids of all images.
+
+  Arguments to the command are treated as search names, and only
+  images whose names match are included in the output.      
+
+- *list* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /ls/)
+
+  List names, and ids of all ec2 images.
+
+  Arguments to the command are treated as search names, and only
+  images whose names match are included in the output.      
+
+		   
+**** Nodes
+/Nodes/ are indentical with AWS EC2 /instances/.
+
+_Action verbs:_
+- *add* --help --desc|d /<string>/ 
+- *delete* --force|f --help 
+- *describe* --help --short|s --long|l --format|fmt /<string>/ 
+  (aliases: /desc/)
+
+  List names, and ids of all nodes.
+
+  Arguments to the command are treated as search names, and only
+  nodes whose names match are included in the output.      
+
+- *list* --help --short|s --long|l --format|fmt /<string>/ 
+  (aliases: /ls/)
+
+  List names, and ids of all ec2 nodes.
+
+  Arguments to the command are treated as search names, and only
+  nodes whose names match are included in the output.      
+
+- *start* --help 
+- *stop* --force|f --help 
+		   
+**** Policies
+
+_Action verbs:_
+- *list* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /ls/)
+
+  List names, and ids of all policies.
+
+  Arguments to the command are treated as search names, and only
+  policies whose names match are included in the output.      
+
+		   
+**** Roles
+
+_Action verbs:_
+- *list* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /ls/)
+
+  List names, and ids of all roles.
+
+  Arguments to the command are treated as search names, and only
+  roles whose names match are included in the output.      
+
+		   
+**** Subnets
+
+_Action verbs:_
+- *describe* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /desc, get/)
+- *list* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /ls/)
+		   
+**** Users
+
+_Action verbs:_
+- *describe* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /desc, get/)
+- *list* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /ls/)
+		   
+**** Vpcs
+
+_Action verbs:_
+- *describe* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /desc, get/)
+- *list* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /ls/)
+		   
 
 ** Crowd
+The *Crowd* realm commands work directly against the [[https://www.jfrog.com/confluence/display/RTF/Artifactory+REST+API][Crowd
+REST API]]. The /nouns/ correspond to the /Resource/ classes defined by
+the Crowd API.
+
+The exact API call sent by *rosh* to the web endpoint can be obtained
+by setting the *show_curl* variable to /1/ in *rosh* ("=set show_curl = 1=").
+
+*** Authentication
+The [[https://docs.atlassian.com/atlassian-crowd/3.1.2/REST/][Crowd REST API]] is not intended for direct user access but rather
+to be accessed from /applications/ that depend on services
+provided by crowd. In order to authenticate to the Crowd server, the
+IP address of the computer sending the request must be cleared for
+access. Application credentials (name and password) and IP-based
+access to Crowd must be configured through the Crowd web interface.
+
+The Crowd /access_token/ specified in the =$HOME/.rosh_preferences=
+file is composed of the base64-encoded /application name/, and the
+application's /password/, separated by a colon (':') (use the supplied
+=encode64.pl= utility, to encode the credentials).
+
+*** Nouns
+**** Groups
+
+_Action verbs:_
+- *add* --help --desc|d /<string>/ 
+- *add member to* --help 
+  (aliases: /add user to/)
+- *delete* --force|f --help 
+- *describe* --help --long|l --short|s 
+  (aliases: /desc, list members of, list members in, list users in/)
+
+  List names, and ids of all subgroups contained in the group
+  passed as argument.
+
+- *edit* --help --group /<string>/ --name|n /<string>/ --path /<string>/ --in /<string>/ --desc|d /<string>/ --visibility /<string>/ 
+- *list* --help 
+
+  List names, and ids of all groups.
+
+  Arguments to the command are treated as search names, and only
+  groups whose names match are included in the output.      
+
+- *remove member from* --help 
+  (aliases: /remove user from/)
+		   
+**** Users
+
+_Action verbs:_
+- *create* --help --proto /<string>/ --name|n /<string>/ --email /<string>/ --surname|sn /<string>/ --givenname|gn /<string>/ --groups /<string>/ 
+  (aliases: /add/)
+
+  The command modifies one or more users by prototype,
+  i.e. all relevant, non-idividual attributes of the prototype
+  user, specified as argument to the --prot option, are
+  applied to the specified user entries. In particular, the
+  users are added and removed to/from groups so they match the
+  prototype user.
+
+- *describe* --help --long|l --format|fmt /<string>/ --short|s 
+  (aliases: /desc, get/)
+- *edit* --help --email /<string>/ --surname|sn /<string>/ --givenname|gn /<string>/ --groups /<string>/ --proto /<string>/ --force|f --reset-password|resetpw 
+  (aliases: /update, change/)
+- *list* --help 
+  (aliases: /ls/)
+- *remove* --help --force|f 
+  (aliases: /delete, rm, del, offboard/)
+
+  The specified users are not really deleted from the
+  applicable user directory, but rather removed from all
+  groups. This will remove application access from the users,
+  and free up the tool licenses. 
+
+		   
 
 ** Ldap
+The *Ldap* realm provides nothing more than a quick lookup facility
+for user account data in the corporate directory (typically AD). It
+works directly against the Ldap sercice endpoint, by means of perl's
+*Net::LDAP* module.
 
-*** Users
+Because of the variability of the user data schema, the LdapConnector
+class that is part of the realm plugin implementation makes
+assumptions about the particular directory it is querying. Thus, the
+module is not generally portable, and should be treated as
+confidential.
+
+*** Authentication
+The Ldap /access_token/ specified in the =$HOME/.rosh_preferences=
+file is composed of the base64-encoded /domain-qualified username/, and the
+user's /password/, separated by a single space (use the supplied
+=encode64.pl= utility, to encode the credentials).
+
+**** Users
+
+_Action verbs:_
+- *describe* --help --long|l --short|s --format|fmt /<string>/ 
+  (aliases: /desc/)
+- *list* --help --long|l --format|fmt /<string>/ --short|s 
+
+  List names, and ids of matching user entries.
 
 * Why?
 
